@@ -22,7 +22,7 @@ Esta es la API centralizada para la gestión integral de autolavados. El sistema
 
 ### ⌨️ Codigo de la Base de datos
 
-Puedes ver el codigo de la base de datos [📍Aqui](https://github.com/RitoTorri/AuthAPI/blob/master/database/DB.sql)
+Puedes ver el codigo de la base de datos [📍Aqui](https://github.com/RitoTorri/Backend-Gestion-Autolavados/blob/master/database/DB.sql)
 
 <br>
 
