@@ -1,6 +1,6 @@
-# 🚗 Backend - Sistema de Gestión de Autolavados
+# 🧼 Backend API - Sistema de Gestión de Autolavados
 
-Sistema RESTful para el control operativo y contabilidad automatizada de autolavados. Desarrollada con NestJS y TypeORM.
+Esta es la API centralizada para la gestión integral de autolavados. El sistema no solo gestiona la operatividad del lavado, sino que integra de forma automatizada el control de inventario (químicos), liquidación de comisiones y una suite contable para la toma de decisiones financieras.
 
 <br>
 
