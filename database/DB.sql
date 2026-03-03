@@ -1,0 +1,67 @@
+-- Enums
+CREATE TYPE actions_permissions AS ENUM('create','update','delete','read');
+
+-- Tablas
+CREATE TABLE modules (
+	moduleId SERIAL PRIMARY KEY,
+	name VARCHAR(50) UNIQUE,
+	active BOOLEAN DEFAULT TRUE,
+	createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	deletedAt TIMESTAMP DEFAULT NULL,
+	updatedAt TIMESTAMP DEFAULT NULL
+);
+
+CREATE TABLE roles (
+	roleId SERIAL PRIMARY KEY,
+	name VARCHAR(40) UNIQUE NOT NULL,
+	active BOOLEAN DEFAULT TRUE,
+	createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	deletedAt TIMESTAMP DEFAULT NULL,
+	updatedAt TIMESTAMP DEFAULT NULL
+);
+
+CREATE TABLE permissions(
+	permissionId SERIAL PRIMARY KEY,
+	moduleId INTEGER REFERENCES modules(moduleId) NOT NULL,
+	typePermission actions_permissions,
+	active BOOLEAN DEFAULT TRUE,
+	createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	deletedAt TIMESTAMP DEFAULT NULL,
+	updatedAt TIMESTAMP DEFAULT NULL,
+	UNIQUE(moduleId, typePermission)
+);
+
+CREATE TABLE roles_permissions(
+	rolePermissionId SERIAL PRIMARY KEY, 
+	roleId INTEGER REFERENCES roles(roleId),
+	permissionId INTEGER REFERENCES permissions(permissionId),
+	active BOOLEAN DEFAULT TRUE,
+	createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	deletedAt TIMESTAMP DEFAULT NULL,
+	updatedAt TIMESTAMP DEFAULT NULL,
+	UNIQUE(roleId, permissionId)
+);
+
+CREATE TABLE users (
+	userId SERIAL PRIMARY KEY,
+	roleId INTEGER REFERENCES roles(roleId) NOT NULL,
+	name VARCHAR(100) NOT NULL,
+	email VARCHAR(255) UNIQUE NOT NULL,
+	password VARCHAR(255) NOT NULL,  
+	active BOOLEAN DEFAULT TRUE,
+	createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	deletedAt TIMESTAMP DEFAULT NULL,
+	updatedAt TIMESTAMP DEFAULT NULL
+);
+
+CREATE TABLE refresh_token(
+	tokenId SERIAL PRIMARY KEY,
+	userId INTEGER REFERENCES users(userId) NOT NULL,
+	token VARCHAR(255) UNIQUE NOT NULL,
+	expiresAt TIMESTAMP NOT NULL,  -- Creacion + 7 dias 
+  revoked BOOLEAN DEFAULT FALSE,
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indices
+-- Constraints
