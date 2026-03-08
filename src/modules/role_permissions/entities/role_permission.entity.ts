@@ -9,8 +9,8 @@ import {
     JoinColumn,
     Unique
 } from 'typeorm';
-import { Role } from 'src/modules/roles/entities/role.entity'; // Ajusta las rutas
-import { Permission } from 'src/modules/permissions/entities/permission.entity';
+import { Role } from '../../../modules/roles/entities/role.entity'; // Ajusta las rutas
+import { Permission } from '../../../modules/permissions/entities/permission.entity';
 
 @Entity('roles_permissions')
 @Unique(['roleId', 'permissionId']) // Garantiza que un rol no tenga el mismo permiso dos veces

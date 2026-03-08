@@ -4,8 +4,8 @@ import { Repository } from 'typeorm';
 import { RefreshToken } from './entities/refreshToken.entity';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login';
-import { decodeToken, generateToken } from 'src/shared/utils/tokens.utils';
-import { RolePermission } from 'src/modules/role_permissions/entities/role_permission.entity';
+import { decodeToken, generateToken } from '../../shared/utils/tokens.utils';
+import { RolePermission } from '../../modules/role_permissions/entities/role_permission.entity';
 import bcrypt from 'bcrypt';
 
 @Injectable()

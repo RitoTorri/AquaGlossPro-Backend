@@ -1,6 +1,6 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Request } from 'express';
-import { verifyToken } from 'src/shared/utils/tokens.utils';
+import { verifyToken } from '../../shared/utils/tokens.utils';
 
 @Injectable()
 export class VerifyRefreshTokenGuard implements CanActivate {

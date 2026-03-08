@@ -1,4 +1,4 @@
-import { Permission } from 'src/modules/permissions/entities/permission.entity';
+import { Permission } from '../../permissions/entities/permission.entity';
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn } from 'typeorm';
 import { OneToMany } from 'typeorm';
 

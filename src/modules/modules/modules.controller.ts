@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Res, ParseBoolPipe, 
 import { type Response } from 'express';
 import { ModulesService } from './modules.service';
 import { ModuleDto } from './dto/module.dto';
-import responses from 'src/shared/utils/responses';
+import responses from '../../shared/utils/responses';
 
 @Controller('modules')
 export class ModulesController {

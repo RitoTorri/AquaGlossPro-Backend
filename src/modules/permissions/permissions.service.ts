@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Permission } from './entities/permission.entity';
 import { DataSource } from 'typeorm';
-import { actionsPermissions } from 'src/shared/enums/actions.enums';
-import { Modul } from 'src/modules/modules/entities/module.entity';
+import { actionsPermissions } from '../../shared/enums/actions.enums';
+import { Modul } from '../../modules/modules/entities/module.entity';
 
 @Injectable()
 export class PermissionsService {

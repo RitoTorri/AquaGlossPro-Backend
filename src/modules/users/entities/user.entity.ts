@@ -1,6 +1,6 @@
-import { Role } from 'src/modules/roles/entities/role.entity';
+import { Role } from '../../../modules/roles/entities/role.entity';
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
-import { RefreshToken } from 'src/modules/auth/entities/refreshToken.entity';
+import { RefreshToken } from '../../../modules/auth/entities/refreshToken.entity';
 
 @Entity('users')
 export class User {

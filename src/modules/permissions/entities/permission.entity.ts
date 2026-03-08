@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Unique, OneToMany } from 'typeorm';
-import { actionsPermissions } from 'src/shared/enums/actions.enums';
-import { Modul } from 'src/modules/modules/entities/module.entity';
-import { RolePermission } from 'src/modules/role_permissions/entities/role_permission.entity'; // Ajusta las rutas
+import { actionsPermissions } from '../../../shared/enums/actions.enums';
+import { Modul } from '../../modules/entities/module.entity';
+import { RolePermission } from '../../../modules/role_permissions/entities/role_permission.entity'; // Ajusta las rutas
 
 @Entity("permissions")
 @Unique(['modul', 'typePermission'])

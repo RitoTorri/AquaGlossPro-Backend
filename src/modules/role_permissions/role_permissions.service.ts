@@ -6,7 +6,7 @@ import { UpdateRolePermissionDto } from './dto/update-role_permission.dto';
 import { RolePermission } from './entities/role_permission.entity';
 import { RolesService } from '../roles/roles.service';
 import { PermissionsService } from '../permissions/permissions.service';
-import { PaginationDto } from 'src/shared/dto/pagination.dto';
+import { PaginationDto } from '../../shared/dto/pagination.dto';
 
 @Injectable()
 export class RolePermissionsService {

@@ -2,8 +2,8 @@ import { Controller, Get, Post, Body, Res, Req, Headers, UseGuards } from '@nest
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login';
 import type { Response, Request } from 'express';
-import responses from 'src/shared/utils/responses';
-import { VerifyRefreshTokenGuard } from 'src/shared/guards/verify-refresh-token.guard';
+import responses from '../../shared/utils/responses';
+import { VerifyRefreshTokenGuard } from '../../shared/guards/verify-refresh-token.guard';
 
 
 @Controller('auth')

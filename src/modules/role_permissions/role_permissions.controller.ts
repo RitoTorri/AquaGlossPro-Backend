@@ -2,9 +2,9 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Res, Query, ParseInt
 import { RolePermissionsService } from './role_permissions.service';
 import { CreateRolePermissionDto } from './dto/create-role_permission.dto';
 import { UpdateRolePermissionDto } from './dto/update-role_permission.dto';
-import { PaginationDto } from 'src/shared/dto/pagination.dto';
+import { PaginationDto } from '../../shared/dto/pagination.dto';
 import type { Response } from 'express';
-import responses from 'src/shared/utils/responses';
+import responses from '../../shared/utils/responses';
 
 @Controller('role/permissions')
 export class RolePermissionsController {

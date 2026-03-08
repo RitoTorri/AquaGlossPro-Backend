@@ -3,8 +3,8 @@ import type { Response } from 'express';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import responses from 'src/shared/utils/responses';
-import { PaginationDto } from 'src/shared/dto/pagination.dto';
+import responses from '../../shared/utils/responses';
+import { PaginationDto } from '../../shared/dto/pagination.dto';
 
 @Controller('users')
 export class UsersController {

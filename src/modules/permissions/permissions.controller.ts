@@ -1,8 +1,8 @@
 import { Controller, Query, Res, Get } from '@nestjs/common';
 import { PermissionsService } from './permissions.service';
-import responses from 'src/shared/utils/responses';
+import responses from '../../shared/utils/responses';
 import type{ Response } from 'express';
-import { PaginationDto } from 'src/shared/dto/pagination.dto';
+import { PaginationDto } from '../../shared/dto/pagination.dto';
 
 
 @Controller('permissions')
