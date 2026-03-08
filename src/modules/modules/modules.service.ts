@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateModuleDto } from './dto/create-module.dto';
@@ -17,7 +17,7 @@ export class ModulesService {
   async create(createModuleDto: CreateModuleDto) {
     try {
       const moduleExists = await this.findByName(createModuleDto.name);
-      if (moduleExists !== null) throw new Error('Module already exists');
+      if (moduleExists !== null) throw new ConflictException('Ya existe un módulo con ese nombre');
 
       const newModule = this.moduleRespository.create(createModuleDto);
       const moduleSaved = await this.moduleRespository.save(newModule);
@@ -44,12 +44,12 @@ export class ModulesService {
     try {
       // Verficar existencia del módulo
       const moduleExists = await this.findById(id);
-      if (!moduleExists) throw new Error('Module not found');
-      if (!moduleExists.active) throw new Error('Module is inactive');
+      if (!moduleExists) throw new NotFoundException('No se encontró el módulo con el id proporcionado');
+      if (!moduleExists.active) throw new ConflictException('El módulo está inactivo. No puede ser actualizado');
 
       // Verficar que el nombre no exista en la DB
       const moduleWithSameName = await this.findByName(updateModuleDto.name as string);
-      if (moduleWithSameName !== null) throw new Error('Module already exists');
+      if (moduleWithSameName !== null) throw new ConflictException('Ya existe un módulo con ese nombre');
 
       return await this.moduleRespository.update(id, { ...updateModuleDto, updatedAt: new Date() });
     } catch (error) { throw error; }
@@ -59,8 +59,8 @@ export class ModulesService {
   async restore(id: number) {
     try {
       const moduleExists = await this.findById(id);
-      if (!moduleExists) throw new Error('Module not found');
-      if (moduleExists.active) throw new Error('Module is active');
+      if (!moduleExists) throw new NotFoundException('No se encontró el módulo con el id proporcionado');
+      if (moduleExists.active) throw new ConflictException('El módulo está activo. No puede ser restaurado');
 
       return await this.moduleRespository.update(id, { active: true, deletedAt: null });
     } catch (error) { throw error; }
@@ -70,8 +70,8 @@ export class ModulesService {
   async remove(id: number) {
     try {
       const moduleExists = await this.findById(id);
-      if (!moduleExists) throw new Error('Module not found');
-      if (!moduleExists.active) throw new Error('Module is inactive');
+      if (!moduleExists) throw new NotFoundException('No se encontró el módulo con el id proporcionado');
+      if (!moduleExists.active) throw new ConflictException('El módulo está inactivo. No puede ser eliminado');
 
       moduleExists.active = false;
       moduleExists.deletedAt = new Date();
