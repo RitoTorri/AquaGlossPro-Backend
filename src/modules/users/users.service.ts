@@ -36,15 +36,9 @@ export class UsersService {
   }
 
 
-<<<<<<< HEAD
-  async findAll(active: boolean, page: number, limit: number) {
-    const [users, total] = await this.userRepository.findAndCount({
-      where: { active: active },
-=======
   async findAll(active: boolean, page: number, limit: number, param: string | '') {
     const [users, total] = await this.userRepository.findAndCount({
       where: { active: active, name: ILike(`%${param?.toUpperCase()}%`) },
->>>>>>> jesus
       take: limit,
       skip: (page - 1) * limit,
       select: {
