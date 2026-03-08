@@ -3,13 +3,14 @@ import { type Response } from 'express';
 import { ModulesService } from './modules.service';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
+import { ApiOperation } from '@nestjs/swagger';
 import responses from '../../shared/utils/responses';
 
 @Controller('modules')
 export class ModulesController {
   constructor(private readonly modulesService: ModulesService) { }
 
-
+  @ApiOperation({summary: 'Crea un nuevo módulo'})
   @Post()
   async create(@Res() res: Response, @Body() createModuleDto: CreateModuleDto) {
     try {
@@ -28,7 +29,7 @@ export class ModulesController {
     }
   }
 
-
+  @ApiOperation({summary: 'Lista de módulos'})
   @Get(':active')
   async findAll(@Res() res: Response, @Param('active', ParseBoolPipe) active: boolean) {
     try {
@@ -43,7 +44,7 @@ export class ModulesController {
     }
   }
 
-
+  @ApiOperation({summary: 'Actualiza un módulo'})
   @Patch(':id')
   async update(@Res() res: Response, @Param('id') id: string, @Body() updateModuleDto: UpdateModuleDto) {
     try {
@@ -68,7 +69,7 @@ export class ModulesController {
     }
   }
 
-
+  @ApiOperation({summary: 'Restaura un módulo'})
   @Patch('restore/:id')
   async restore(@Res() res: Response, @Param('id', ParseIntPipe) id: string) {
     try {
@@ -91,7 +92,7 @@ export class ModulesController {
     }
   }
 
-
+  @ApiOperation({summary: 'Elimina un módulo'})
   @Delete(':id')
   async remove(@Res() res: Response, @Param('id', ParseIntPipe) id: string) {
     try {

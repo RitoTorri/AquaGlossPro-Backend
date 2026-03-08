@@ -4,12 +4,15 @@ import { LoginDto } from './dto/login';
 import type { Response, Request } from 'express';
 import responses from '../../shared/utils/responses';
 import { VerifyRefreshTokenGuard } from '../../shared/guards/verify-refresh-token.guard';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 
+@ApiTags('Roles, autenticacion y Accesos')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) { }
 
+  @ApiOperation({summary: 'Autenticación de usuario'})
   @Post('login')
   async login(@Res() res: Response, @Body() loginDto: LoginDto) {
     try {
@@ -34,6 +37,7 @@ export class AuthController {
     }
   }
 
+  @ApiOperation({summary: 'Cierre de sesión'})
   @Get('logout')
   async logout(@Res() res: Response, @Headers('authorization') authHeader: String) {
     try {
@@ -57,6 +61,7 @@ export class AuthController {
     }
   }
 
+  @ApiOperation({summary: 'Actualización de sesión'})
   @Get('refresh')
   @UseGuards(VerifyRefreshTokenGuard)
   async refreshToken(@Res() res: Response, @Req() req: Request) {

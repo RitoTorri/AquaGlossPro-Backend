@@ -1,14 +1,17 @@
 import { Controller, Query, Res, Get } from '@nestjs/common';
 import { PermissionsService } from './permissions.service';
-import responses from '../../shared/utils/responses';
 import type{ Response } from 'express';
 import { PaginationDto } from '../../shared/dto/pagination.dto';
+
+import responses from '../../shared/utils/responses';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 
 @Controller('permissions')
 export class PermissionsController {
     constructor(private readonly permissionsService: PermissionsService) { }
 
+    @ApiOperation({summary: 'Lista de permisos'})
     @Get('')
     async getAll(@Res() res: Response, @Query() paginationDto: PaginationDto) {
         try {
