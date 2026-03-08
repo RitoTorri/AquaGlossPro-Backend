@@ -30,9 +30,10 @@ async function bootstrap() {
   );
 
   const config = new DocumentBuilder()
-    .setTitle('AUTH API REST Documentation')
-    .setDescription('Role-Based Authentication and Authorization Service (RBAC)')
-    .setVersion('1.0')
+    .setTitle('AquaGloss Pro Documentacion')
+    .setDescription('Esta API proporciona una solución integral para la modernización y optimización de servicios de autolavados. Permite la automatización del flujo operativo completo: desde la recepción y entrada del vehículo hasta la liquidación contable.')
+    .setVersion('1.0.0')
+    .addServer(`http://localhost:${port}`)
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, documentFactory);
