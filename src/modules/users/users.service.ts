@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
-import { Repository } from 'typeorm';
+import { Repository, ILike } from 'typeorm';
 import { RolesService } from '../roles/roles.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -36,9 +36,15 @@ export class UsersService {
   }
 
 
+<<<<<<< HEAD
   async findAll(active: boolean, page: number, limit: number) {
     const [users, total] = await this.userRepository.findAndCount({
       where: { active: active },
+=======
+  async findAll(active: boolean, page: number, limit: number, param: string | '') {
+    const [users, total] = await this.userRepository.findAndCount({
+      where: { active: active, name: ILike(`%${param?.toUpperCase()}%`) },
+>>>>>>> jesus
       take: limit,
       skip: (page - 1) * limit,
       select: {
