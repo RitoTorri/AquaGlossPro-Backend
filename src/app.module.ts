@@ -10,6 +10,7 @@ import { RolePermissionsModule } from './modules/role_permissions/role_permissio
 import { AuthModule } from './modules/auth/auth.module';
 import { PermissionsController } from './modules/permissions/permissions.controller';
 import { ClientsModule } from './modules/clients/clients.module';
+import { ServicesModule } from './modules/services/services.module';
 
 @Module({
   imports: [
@@ -36,6 +37,8 @@ import { ClientsModule } from './modules/clients/clients.module';
     AuthModule,
 
     ClientsModule,
+
+    ServicesModule,
   ],
   controllers: [PermissionsController]
 })
