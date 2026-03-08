@@ -2,7 +2,7 @@ import { IsString, MinLength, MaxLength, Matches, IsNotEmpty, } from 'class-vali
 import { Transform } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class RoleDto {
+export class CreateRoleDto {
     @ApiProperty({
         example: 'vendedor',
         required: true,

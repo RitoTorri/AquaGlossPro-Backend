@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ModuleDto } from './dto/module.dto';
+import { CreateModuleDto } from './dto/create-module.dto';
+import { UpdateModuleDto } from './dto/update-module.dto';
 import { Modul } from './entities/module.entity';
 import { PermissionsService } from '../permissions/permissions.service';
 
@@ -13,7 +14,7 @@ export class ModulesService {
     private readonly permissionsService: PermissionsService,
   ) { }
 
-  async create(createModuleDto: ModuleDto) {
+  async create(createModuleDto: CreateModuleDto) {
     try {
       const moduleExists = await this.findByName(createModuleDto.name);
       if (moduleExists !== null) throw new Error('Module already exists');
@@ -39,7 +40,7 @@ export class ModulesService {
   }
 
 
-  async update(id: number, updateModuleDto: ModuleDto) {
+  async update(id: number, updateModuleDto: UpdateModuleDto) {
     try {
       // Verficar existencia del módulo
       const moduleExists = await this.findById(id);
@@ -47,7 +48,7 @@ export class ModulesService {
       if (!moduleExists.active) throw new Error('Module is inactive');
 
       // Verficar que el nombre no exista en la DB
-      const moduleWithSameName = await this.findByName(updateModuleDto.name);
+      const moduleWithSameName = await this.findByName(updateModuleDto.name as string);
       if (moduleWithSameName !== null) throw new Error('Module already exists');
 
       return await this.moduleRespository.update(id, { ...updateModuleDto, updatedAt: new Date() });

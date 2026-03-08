@@ -1,7 +1,8 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Res, ParseBoolPipe, ParseIntPipe } from '@nestjs/common';
 import { type Response } from 'express';
 import { ModulesService } from './modules.service';
-import { ModuleDto } from './dto/module.dto';
+import { CreateModuleDto } from './dto/create-module.dto';
+import { UpdateModuleDto } from './dto/update-module.dto';
 import responses from '../../shared/utils/responses';
 
 @Controller('modules')
@@ -10,7 +11,7 @@ export class ModulesController {
 
 
   @Post()
-  async create(@Res() res: Response, @Body() createModuleDto: ModuleDto) {
+  async create(@Res() res: Response, @Body() createModuleDto: CreateModuleDto) {
     try {
       const newModule = await this.modulesService.create(createModuleDto);
       return newModule
@@ -44,7 +45,7 @@ export class ModulesController {
 
 
   @Patch(':id')
-  async update(@Res() res: Response, @Param('id') id: string, @Body() updateModuleDto: ModuleDto) {
+  async update(@Res() res: Response, @Param('id') id: string, @Body() updateModuleDto: UpdateModuleDto) {
     try {
       const updatedModule = await this.modulesService.update(+id, updateModuleDto);
       return updatedModule
