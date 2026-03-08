@@ -18,7 +18,7 @@ export class CreateUserDto {
     @MinLength(4)
     @MaxLength(50)
     @Matches(/^[a-zA-Z\s]+$/, { message: 'name must contain only letters' })
-    @Transform(({ value }) => value.toLowerCase())
+    @Transform(({ value }) => value.toUpperCase())
     name: string;
 
     @ApiProperty({ example: 'email@gmail.com', required: true })

@@ -14,15 +14,10 @@ export class PermissionsController {
     @ApiOperation({summary: 'Lista de permisos'})
     @Get('')
     async getAll(@Res() res: Response, @Query() paginationDto: PaginationDto) {
-        try {
-            const { active, page = 1, limit = 10 } = paginationDto;
-            const permissions = await this.permissionsService.findAll(active, page, limit);
-            return permissions
-                ? responses.responseSuccessful(res, 200, "Permisos obtenidos de manera exitosa", permissions)
-                : responses.responsefailed(res, 404, 'No se encontraron permisos');
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            return responses.responsefailed(res, 500, errorMessage);
-        }
+        const { active, page = 1, limit = 10 } = paginationDto;
+        const permissions = await this.permissionsService.findAll(active, page, limit);
+        return permissions
+            ? responses.responseSuccessful(res, 200, "Permisos obtenidos de manera exitosa", permissions)
+            : responses.responsefailed(res, 404, 'No se encontraron permisos');
     }
 }
