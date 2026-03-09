@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RefreshToken } from './entities/refreshToken.entity';
@@ -20,18 +20,19 @@ export class AuthService {
 
   async login(loginDto: LoginDto) {
     try {
+      console.log(loginDto);
       const user = await this.usersService.findByEmail(loginDto.email);
-      if (!user) throw new Error('User not found');
-      if (!user.active) throw new Error('User is inactive');
+      if (!user) throw new NotFoundException('No se encontró el usuario con ese correo electrónico');
+      if (!user.active) throw new ConflictException('El usuario está inactivo. Por favor, contacte con el administrador');
 
       const passwordIsCorrect = await bcrypt.compare(loginDto.password, user.password);
-      if (!passwordIsCorrect) throw new Error('Incorrect password');
+      if (!passwordIsCorrect) throw new BadRequestException('El usuario no existe o la contraseña es incorrecta');
 
       // Restricción de una sesión
       const existingSession = await this.refreshTokenRepository.findOne({
         where: { userId: user.userId },
       });
-      if (existingSession) throw new Error('Already logged in from another device');
+      if (existingSession) throw new ConflictException('Ya hay una sesión iniciada desde otro dispositivo');
 
       const permissions = await this.getUserPermissions(user.userId);
 
@@ -90,15 +91,14 @@ export class AuthService {
       // 2. VALIDACIÓN CRUCIAL: 
       // Si no hay sesión en DB O el token enviado no coincide con el de la DB... ¡FUERA!
       if (!sessionInDb || sessionInDb.token !== sendToken) {
-        throw new Error('Refresh token not found');
+        throw new NotFoundException('El token de refresco no existe');
         // O 'Invalid session', esto evita que tokens viejos generen nuevos
       }
 
       // 3. Si llegamos aquí, el token es el correcto. 
       // Ahora buscamos al usuario para obtener su data fresca
       const user = await this.usersService.findById(userId);
-      if (!user) throw new Error('User not found');
-
+      if (!user) throw new NotFoundException('No se encontró el usuario con ese correo electrónico');
       // 4. ROTACIÓN: Borramos el viejo (el que acabamos de validar)
       await this.refreshTokenRepository.delete({ userId: userId });
 

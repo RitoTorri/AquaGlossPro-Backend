@@ -1,10 +1,10 @@
-import { Controller, Get, Post, Body, Res, Req, Headers, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Res, Req, Headers, UseGuards, BadRequestException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login';
 import type { Response, Request } from 'express';
 import responses from '../../shared/utils/responses';
 import { VerifyRefreshTokenGuard } from '../../shared/guards/verify-refresh-token.guard';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 
 @Controller('auth')
@@ -22,7 +22,7 @@ export class AuthController {
   @Get('logout')
   async logout(@Res() res: Response, @Headers('authorization') authHeader: String) {
     // 1. Extraemos el token manualmente (porque quitamos el Guard)
-    if (!authHeader) throw new Error('No token provided');
+    if (!authHeader) throw new BadRequestException('No se proporcionó un token');
     const token: String = authHeader.split(' ')[1]; // Quitamos el "Bearer "
 
     // 2. Llamamos al servicio pasando el token crudo
@@ -33,6 +33,12 @@ export class AuthController {
   }
 
   @ApiOperation({summary: 'Actualización de sesión'})
+  @ApiHeader({
+    name: 'authorization',
+    description: 'Token de refresco (Bearer)',
+    required: true,
+    example: 'Bearer eyJhbGciOiJIUzI1NiIs...'
+  })
   @Get('refresh')
   @UseGuards(VerifyRefreshTokenGuard)
   async refreshToken(@Res() res: Response, @Req() req: Request) {
