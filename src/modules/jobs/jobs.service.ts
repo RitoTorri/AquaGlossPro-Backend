@@ -24,34 +24,39 @@ export class JobsService {
   }
 
   async findAll(active: boolean, page: number, limit: number, param: string) {
-    const [jobs, total] = await this.jobsRepository.findAndCount({
-      where: [
-        { active, name: ILike(`%${param?.toUpperCase()}%`) },
-        { active, description: ILike(`%${param}%`) },
-      ],
-      take: limit,
-      skip: (page - 1) * limit,
-      select: {
-        jobId: true,
-        name: true,
-        description: true,
-        active: true,
-        createdAt: true,
-      },
-      order: { jobId: 'ASC' },
-      withDeleted: true,
-    });
+    try {
+      const where = param 
+        ? { active, name: ILike(`%${param.toUpperCase()}%`) }
+        : { active };
 
-    return {
-      data: jobs,
-      meta: {
-        totalItems: total,
-        itemCount: jobs.length,
-        itemsPerPage: limit,
-        totalPages: Math.ceil(total / limit),
-        currentPage: page,
-      },
-    };
+      const [jobs, total] = await this.jobsRepository.findAndCount({
+        where,
+        take: limit,
+        skip: (page - 1) * limit,
+        select: {
+          jobId: true,
+          name: true,
+          baseSalary: true,
+          active: true,
+          createdAt: true,
+        },
+        order: { jobId: 'ASC' },
+        withDeleted: true,
+      });
+
+      return {
+        data: jobs,
+        meta: {
+          totalItems: total,
+          itemCount: jobs.length,
+          itemsPerPage: limit,
+          totalPages: Math.ceil(total / limit),
+          currentPage: page,
+        },
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 
   async update(id: number, updateJobDto: UpdateJobDto) {
@@ -63,7 +68,6 @@ export class JobsService {
       throw new ConflictException('El puesto de trabajo está inactivo. No puede ser actualizado');
     }
 
-    // Si se está actualizando el nombre, verificar que no exista otro con ese nombre
     if (updateJobDto.name) {
       const jobWithSameName = await this.findByName(updateJobDto.name);
       if (jobWithSameName && jobWithSameName.jobId !== id) {
@@ -98,19 +102,19 @@ export class JobsService {
       throw new ConflictException('El puesto de trabajo ya está activo');
     }
 
-    return await this.jobsRepository.update(id, { active: true, deletedAt: null });
+    jobExists.active = true;
+    jobExists.deletedAt = null;
+    return await this.jobsRepository.save(jobExists);
   }
 
-  // Helper: Buscar por nombre
-  async findByName(name: string) {
+  async findByName(name: string): Promise<Job | null> {
     return await this.jobsRepository.findOne({
       where: { name },
       withDeleted: true,
     });
   }
 
-  // Helper: Buscar por ID
-  async findById(id: number) {
+  async findById(id: number): Promise<Job | null> {
     return await this.jobsRepository.findOne({
       where: { jobId: id },
       withDeleted: true,

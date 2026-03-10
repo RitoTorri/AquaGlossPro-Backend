@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, MinLength, MaxLength, Matches, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, MinLength, MaxLength, Matches, IsNumber, Min } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class CreateJobDto {
@@ -18,13 +18,12 @@ export class CreateJobDto {
     name: string;
 
     @ApiProperty({
-        example: 'Encargado del lavado exterior e interior de vehículos',
-        description: 'Descripción del puesto',
-        required: false,
-        maxLength: 200,
+        example: 1500.50,
+        description: 'Salario base del puesto de trabajo',
+        minimum: 0,
     })
-    @IsOptional()
-    @IsString()
-    @MaxLength(200)
-    description?: string;
+    @IsNumber()
+    @IsNotEmpty()
+    @Min(0)
+    baseSalary: number;
 }

@@ -1,49 +1,49 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Res, ParseIntPipe, Query } from '@nestjs/common';
-import { JobsService } from './jobs.service';
-import { CreateJobDto } from './dto/create-job.dto';
-import { UpdateJobDto } from './dto/update-job.dto';
-import { PaginationDto } from '../../shared/dto/pagination.dto';
+import { ProductsService } from './products.service';
+import { CreateProductDto } from './dto/create-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
+import { PaginationDto } from '../../shared/dto/pagination.dto';  // ← RUTA CORREGIDA (../../)
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
-import responses from '../../shared/utils/responses';
+import responses from '../../shared/utils/responses';  // ← RUTA CORREGIDA (../../)
 
-@ApiTags('jobs')
-@Controller('jobs')
-export class JobsController {
-  constructor(private readonly jobsService: JobsService) {}
+@ApiTags('products')
+@Controller('products')
+export class ProductsController {
+  constructor(private readonly productsService: ProductsService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Crear un nuevo puesto de trabajo' })
-  async create(@Res() res: Response, @Body() createJobDto: CreateJobDto) {
+  @ApiOperation({ summary: 'Crear un nuevo producto' })
+  async create(@Res() res: Response, @Body() createProductDto: CreateProductDto) {
     try {
-      const job = await this.jobsService.create(createJobDto);
-      return responses.responseSuccessful(res, 201, 'Puesto de trabajo creado exitosamente', job);
+      const product = await this.productsService.create(createProductDto);
+      return responses.responseSuccessful(res, 201, 'Producto creado exitosamente', product);
     } catch (error) {
       return responses.responsefailed(res, error.status || 500, error.message);
     }
   }
 
   @Get()
-  @ApiOperation({ summary: 'Listar todos los puestos de trabajo' })
+  @ApiOperation({ summary: 'Listar todos los productos' })
   async findAll(@Res() res: Response, @Query() paginationDto: PaginationDto) {
     try {
       const { active = true, page = 1, limit = 10, param = '' } = paginationDto;
-      const jobs = await this.jobsService.findAll(active, page, limit, param);
-      return responses.responseSuccessful(res, 200, 'Puestos de trabajo obtenidos exitosamente', jobs);
+      const products = await this.productsService.findAll(active, page, limit, param);
+      return responses.responseSuccessful(res, 200, 'Productos obtenidos exitosamente', products);
     } catch (error) {
       return responses.responsefailed(res, error.status || 500, error.message);
     }
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Actualizar un puesto de trabajo' })
+  @ApiOperation({ summary: 'Actualizar un producto' })
   async update(
     @Res() res: Response,
     @Param('id', ParseIntPipe) id: string,
-    @Body() updateJobDto: UpdateJobDto
+    @Body() updateProductDto: UpdateProductDto
   ) {
     try {
-      await this.jobsService.update(+id, updateJobDto);
+      await this.productsService.update(+id, updateProductDto);
       return responses.responseSuccessful(res, 204);
     } catch (error) {
       return responses.responsefailed(res, error.status || 500, error.message);
@@ -51,10 +51,10 @@ export class JobsController {
   }
 
   @Patch('restore/:id')
-  @ApiOperation({ summary: 'Restaurar un puesto de trabajo' })
+  @ApiOperation({ summary: 'Restaurar un producto' })
   async restore(@Res() res: Response, @Param('id', ParseIntPipe) id: string) {
     try {
-      await this.jobsService.restore(+id);
+      await this.productsService.restore(+id);
       return responses.responseSuccessful(res, 204);
     } catch (error) {
       return responses.responsefailed(res, error.status || 500, error.message);
@@ -62,10 +62,10 @@ export class JobsController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar un puesto de trabajo' })
+  @ApiOperation({ summary: 'Eliminar un producto' })
   async remove(@Res() res: Response, @Param('id', ParseIntPipe) id: string) {
     try {
-      await this.jobsService.remove(+id);
+      await this.productsService.remove(+id);
       return responses.responseSuccessful(res, 204);
     } catch (error) {
       return responses.responsefailed(res, error.status || 500, error.message);

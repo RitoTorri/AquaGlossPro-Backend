@@ -1,15 +1,12 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn } from 'typeorm';
 
-@Entity('jobs')
-export class Job {
+@Entity('type_vehicle')
+export class TypeVehicle {
     @PrimaryGeneratedColumn()
-    jobId: number;
+    typeVehicleId: number;
 
-    @Column({ unique: true, length: 50 })
+    @Column({ length: 50, unique: true })
     name: string;
-
-    @Column({ type: 'decimal', precision: 10, scale: 2, nullable: false })
-    baseSalary: number;
 
     @Column({ default: true })
     active: boolean;

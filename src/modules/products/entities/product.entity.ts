@@ -1,15 +1,24 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn } from 'typeorm';
 
-@Entity('jobs')
-export class Job {
+@Entity('products')
+export class Product {
     @PrimaryGeneratedColumn()
-    jobId: number;
+    productId: number;
 
-    @Column({ unique: true, length: 50 })
+    @Column({ length: 100, unique: true })
     name: string;
 
     @Column({ type: 'decimal', precision: 10, scale: 2, nullable: false })
-    baseSalary: number;
+    unitCostLiter: number;
+
+    @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+    currentStock: number;
+
+    @Column({ type: 'decimal', precision: 10, scale: 2, nullable: false })
+    minStock: number;
+
+    @Column({ type: 'decimal', precision: 10, scale: 2, nullable: false })
+    maxStock: number;
 
     @Column({ default: true })
     active: boolean;
