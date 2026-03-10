@@ -12,6 +12,7 @@ import { PermissionsController } from './modules/permissions/permissions.control
 import { ClientsModule } from './modules/clients/clients.module';
 import { ServicesModule } from './modules/services/services.module';
 import { SuppliersModule } from './modules/suppliers/suppliers.module';
+import { JobsModule } from './modules/jobs/jobs.module';
 
 @Module({
   imports: [
@@ -42,6 +43,9 @@ import { SuppliersModule } from './modules/suppliers/suppliers.module';
     ServicesModule,
 
     SuppliersModule,
+
+    JobsModule,
+    
   ],
   controllers: [PermissionsController]
 })
