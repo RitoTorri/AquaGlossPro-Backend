@@ -36,7 +36,7 @@ async function bootstrap() {
     .addServer(`http://localhost:${port}`)
     .setContact(
       'Jesus Francisco Cortez Torres', 
-      'https://mi-portafolio-beta-mocha.vercel.app/', 
+      'https://rito-torri-mi-portfolio.netlify.app/', 
       'cortezfrancisco025@gmail.com'
     )
     .build();
