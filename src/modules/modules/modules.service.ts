@@ -44,7 +44,7 @@ export class ModulesService {
     try {
       // Verficar existencia del módulo
       const moduleExists = await this.findById(id);
-      if (!moduleExists) throw new NotFoundException('No existe un módulo con el id proporcionado');
+      if (!moduleExists) throw new NotFoundException('No se encontró el módulo con el id proporcionado');
       if (!moduleExists.active) throw new ConflictException('El módulo está inactivo. No puede ser actualizado');
 
       // Verficar que el nombre no exista en la DB

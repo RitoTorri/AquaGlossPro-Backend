@@ -13,6 +13,10 @@ import { ClientsModule } from './modules/clients/clients.module';
 import { ServicesModule } from './modules/services/services.module';
 import { SuppliersModule } from './modules/suppliers/suppliers.module';
 import { EmployeesModule } from './modules/employees/employees.module';
+import { JobsModule } from './modules/jobs/jobs.module';
+import { ProductsModule } from './modules/products/products.module';
+import { PaymentsMethodsModule } from './modules/payments-methods/payments-methods.module';
+import { TypeVehicleModule } from './modules/type-vehicle/type-vehicle.module';
 
 @Module({
   imports: [
@@ -45,6 +49,14 @@ import { EmployeesModule } from './modules/employees/employees.module';
     SuppliersModule,
 
     EmployeesModule,
+    JobsModule,
+
+    ProductsModule,
+
+    PaymentsMethodsModule,
+
+    TypeVehicleModule,
+    
   ],
   controllers: [PermissionsController]
 })
