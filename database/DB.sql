@@ -1,67 +1,273 @@
--- Enums
+-- ENUMS
+CREATE TYPE washing_status AS ENUM ('En espera', 'En proceso', 'Completados', 'Cancelado');
+CREATE TYPE status_payments AS ENUM ('Pendiente', 'Pagado', 'Cancelado');
 CREATE TYPE actions_permissions AS ENUM('create','update','delete','read');
 
--- Tablas
+-- TABLES 
+-- clients
+CREATE TABLE clients (
+    clientId    SERIAL PRIMARY KEY,
+    names       VARCHAR(100) NOT NULL,
+    lastnames   VARCHAR(100) NOT NULL,
+    numberPhone VARCHAR(20),
+    ci          VARCHAR(20) UNIQUE NOT NULL,
+    active      BOOLEAN DEFAULT TRUE,
+    createdAt   TIMESTAMP DEFAULT NOW(),
+    updatedAt   TIMESTAMP DEFAULT NOW(),
+    deletedAt   TIMESTAMP
+);
+
+-- supplier
+CREATE TABLE supplier (
+    supplierId  SERIAL PRIMARY KEY,
+    names       VARCHAR(100) NOT NULL,
+    lastnames   VARCHAR(100) NOT NULL,
+    ci          VARCHAR(20) UNIQUE NOT NULL,
+    email       VARCHAR(255),
+    numberPhone VARCHAR(20),
+    active      BOOLEAN DEFAULT TRUE,
+    createdAt   TIMESTAMP DEFAULT NOW(),
+    updatedAt   TIMESTAMP DEFAULT NOW(),
+    deletedAt   TIMESTAMP
+);
+
+-- jobs
+CREATE TABLE jobs (
+    jobId       SERIAL PRIMARY KEY,
+    names       VARCHAR(100) NOT NULL,
+    baseSalary  DECIMAL(10,2) NOT NULL,
+    active      BOOLEAN DEFAULT TRUE,
+    createdAt   TIMESTAMP DEFAULT NOW(),
+    updatedAt   TIMESTAMP DEFAULT NOW(),
+    deletedAt   TIMESTAMP
+);
+
+-- employees
+CREATE TABLE employees (
+    employeeId  SERIAL PRIMARY KEY,
+    jobId       INTEGER NOT NULL REFERENCES jobs(jobId),
+    names       VARCHAR(100) NOT NULL,
+    lastnames   VARCHAR(100) NOT NULL,
+    ci          VARCHAR(20) UNIQUE NOT NULL,
+    email       VARCHAR(255),
+    numberPhone VARCHAR(20),
+    active      BOOLEAN DEFAULT TRUE,
+    createdAt   TIMESTAMP DEFAULT NOW(),
+    updatedAt   TIMESTAMP DEFAULT NOW(),
+    deletedAt   TIMESTAMP
+);
+
+-- products
+CREATE TABLE products (
+    productId       SERIAL PRIMARY KEY,
+    name            VARCHAR(100) NOT NULL,
+    unitCostLiter   DECIMAL(10,2) NOT NULL,
+    currentStock    DECIMAL(10,2) NOT NULL DEFAULT 0,
+    minStock        DECIMAL(10,2) NOT NULL DEFAULT 0,
+    maxStock        DECIMAL(10,2),
+    active          BOOLEAN DEFAULT TRUE,
+    createdAt       TIMESTAMP DEFAULT NOW(),
+    updatedAt       TIMESTAMP DEFAULT NOW(),
+    deletedAt       TIMESTAMP
+);
+
+-- services
+CREATE TABLE services (
+    serviceId           SERIAL PRIMARY KEY,
+    name                VARCHAR(40) NOT NULL,
+    comissionPercentage DECIMAL(5,2) NOT NULL,
+    active              BOOLEAN DEFAULT TRUE,
+    createdAt           TIMESTAMP DEFAULT NOW(),
+    updatedAt           TIMESTAMP DEFAULT NOW(),
+    deletedAt           TIMESTAMP
+);
+
+-- typeVehicle
+CREATE TABLE typeVehicle (
+    typeVehicleId SERIAL PRIMARY KEY,
+    name          VARCHAR(50) NOT NULL,
+    active        BOOLEAN DEFAULT TRUE,
+    createdAt     TIMESTAMP DEFAULT NOW(),
+    updatedAt     TIMESTAMP DEFAULT NOW(),
+    deletedAt     TIMESTAMP
+);
+
+-- payment_methods
+CREATE TABLE payment_methods (
+    paymentMethodId SERIAL PRIMARY KEY,
+    name            VARCHAR(50) NOT NULL,
+    active          BOOLEAN DEFAULT TRUE,
+    createdAt       TIMESTAMP DEFAULT NOW(),
+    updatedAt       TIMESTAMP DEFAULT NOW(),
+    deletedAt       TIMESTAMP
+);
+
+-- modules
 CREATE TABLE modules (
-	moduleId SERIAL PRIMARY KEY,
-	name VARCHAR(50) UNIQUE,
-	active BOOLEAN DEFAULT TRUE,
-	createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-	deletedAt TIMESTAMP DEFAULT NULL,
-	updatedAt TIMESTAMP DEFAULT NULL
+    moduleId  SERIAL PRIMARY KEY,
+    name      VARCHAR(50) NOT NULL,
+    active    BOOLEAN DEFAULT TRUE,
+    createdAt TIMESTAMP DEFAULT NOW(),
+    updatedAt TIMESTAMP DEFAULT NOW(),
+    deletedAt TIMESTAMP
 );
 
+-- roles
 CREATE TABLE roles (
-	roleId SERIAL PRIMARY KEY,
-	name VARCHAR(40) UNIQUE NOT NULL,
-	active BOOLEAN DEFAULT TRUE,
-	createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-	deletedAt TIMESTAMP DEFAULT NULL,
-	updatedAt TIMESTAMP DEFAULT NULL
+    roleId    SERIAL PRIMARY KEY,
+    name      VARCHAR(40) NOT NULL,
+    active    BOOLEAN DEFAULT TRUE,
+    createdAt TIMESTAMP DEFAULT NOW(),
+    updatedAt TIMESTAMP DEFAULT NOW(),
+    deletedAt TIMESTAMP
 );
 
-CREATE TABLE permissions(
-	permissionId SERIAL PRIMARY KEY,
-	moduleId INTEGER REFERENCES modules(moduleId) NOT NULL,
-	typePermission actions_permissions,
-	active BOOLEAN DEFAULT TRUE,
-	createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-	deletedAt TIMESTAMP DEFAULT NULL,
-	updatedAt TIMESTAMP DEFAULT NULL,
-	UNIQUE(moduleId, typePermission)
+-- permissions
+CREATE TABLE permissions (
+    permissionId   SERIAL PRIMARY KEY,
+    moduleId       INTEGER NOT NULL REFERENCES modules(moduleId),
+    typePermission actions_permissions NOT NULL,
+    active         BOOLEAN DEFAULT TRUE,
+    createdAt      TIMESTAMP DEFAULT NOW(),
+    updatedAt      TIMESTAMP DEFAULT NOW(),
+    deletedAt      TIMESTAMP
 );
 
-CREATE TABLE roles_permissions(
-	rolePermissionId SERIAL PRIMARY KEY, 
-	roleId INTEGER REFERENCES roles(roleId),
-	permissionId INTEGER REFERENCES permissions(permissionId),
-	active BOOLEAN DEFAULT TRUE,
-	createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-	deletedAt TIMESTAMP DEFAULT NULL,
-	updatedAt TIMESTAMP DEFAULT NULL,
-	UNIQUE(roleId, permissionId)
+-- roles_permissions
+CREATE TABLE roles_permissions (
+    rolePermissionId SERIAL PRIMARY KEY,
+    roleId           INTEGER NOT NULL REFERENCES roles(roleId),
+    permissionId     INTEGER NOT NULL REFERENCES permissions(permissionId),
+    active           BOOLEAN DEFAULT TRUE,
+    createdAt        TIMESTAMP DEFAULT NOW(),
+    updatedAt        TIMESTAMP DEFAULT NOW(),
+    deletedAt        TIMESTAMP,
+    UNIQUE(roleId, permissionId)
 );
 
+-- users
 CREATE TABLE users (
-	userId SERIAL PRIMARY KEY,
-	roleId INTEGER REFERENCES roles(roleId) NOT NULL,
-	name VARCHAR(100) NOT NULL,
-	email VARCHAR(255) UNIQUE NOT NULL,
-	password VARCHAR(255) NOT NULL,  
-	active BOOLEAN DEFAULT TRUE,
-	createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-	deletedAt TIMESTAMP DEFAULT NULL,
-	updatedAt TIMESTAMP DEFAULT NULL
+    userId    SERIAL PRIMARY KEY,
+    roleId    INTEGER NOT NULL REFERENCES roles(roleId),
+    name      VARCHAR(100) NOT NULL,
+    email     VARCHAR(255) UNIQUE NOT NULL,
+    password  VARCHAR(255) NOT NULL,
+    active    BOOLEAN DEFAULT TRUE,
+    createdAt TIMESTAMP DEFAULT NOW(),
+    updatedAt TIMESTAMP DEFAULT NOW(),
+    deletedAt TIMESTAMP
 );
 
-CREATE TABLE refresh_token(
-	tokenId SERIAL PRIMARY KEY,
-	userId INTEGER REFERENCES users(userId) NOT NULL,
-	token VARCHAR(255) UNIQUE NOT NULL,
-	expiresAt TIMESTAMP NOT NULL,  -- Creacion + 7 dias 
-  revoked BOOLEAN DEFAULT FALSE,
-  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- vehicles
+CREATE TABLE vehicles (
+    vehicleId      SERIAL PRIMARY KEY,
+    typeVehicleId  INTEGER NOT NULL REFERENCES typeVehicle(typeVehicleId),
+    ownerId        INTEGER NOT NULL REFERENCES clients(clientId),
+    plate          VARCHAR(20) UNIQUE NOT NULL,
+    initial_state  TEXT,
+    active         BOOLEAN DEFAULT TRUE,
+    createdAt      TIMESTAMP DEFAULT NOW(),
+    updatedAt      TIMESTAMP DEFAULT NOW(),
+    deletedAt      TIMESTAMP
 );
 
--- Indices
--- Constraints
+-- combos
+CREATE TABLE combos (
+    comboId            SERIAL PRIMARY KEY,
+    name               VARCHAR(40) NOT NULL,
+    discountPercentage DECIMAL(5,2) NOT NULL,
+    isPromotion        BOOLEAN DEFAULT FALSE,
+    expirationDate     TIMESTAMP,
+    active             BOOLEAN DEFAULT TRUE,
+    createdAt          TIMESTAMP DEFAULT NOW(),
+    updatedAt          TIMESTAMP DEFAULT NOW(),
+    deletedAt          TIMESTAMP
+);
+
+-- services_type_vehicle
+CREATE TABLE services_type_vehicle (
+    serviceTypeVehicleId SERIAL PRIMARY KEY,
+    serviceId            INTEGER NOT NULL REFERENCES services(serviceId),
+    typeVehicleId        INTEGER NOT NULL REFERENCES typeVehicle(typeVehicleId),
+    price                DECIMAL(10,2) NOT NULL,
+    active               BOOLEAN DEFAULT TRUE,
+    createdAt            TIMESTAMP DEFAULT NOW(),
+    updatedAt            TIMESTAMP DEFAULT NOW(),
+    deletedAt            TIMESTAMP,
+    UNIQUE(serviceId, typeVehicleId)
+);
+
+-- combos_services
+CREATE TABLE combos_services (
+    comboServiceId         SERIAL PRIMARY KEY,
+    comboId                INTEGER NOT NULL REFERENCES combos(comboId),
+    servicesTypeVehicleId  INTEGER NOT NULL REFERENCES services_type_vehicle(serviceTypeVehicleId),
+    active                 BOOLEAN DEFAULT TRUE,
+    createdAt              TIMESTAMP DEFAULT NOW(),
+    updatedAt              TIMESTAMP DEFAULT NOW(),
+    deletedAt              TIMESTAMP,
+    UNIQUE(comboId, servicesTypeVehicleId)
+);
+
+-- purchases
+CREATE TABLE purchases (
+    purchaseId      SERIAL PRIMARY KEY,
+    supplierId      INTEGER NOT NULL REFERENCES supplier(supplierId),
+    purchaseDate    TIMESTAMP NOT NULL DEFAULT NOW(),
+    paymentMethodId INTEGER NOT NULL REFERENCES payment_methods(paymentMethodId),
+    statusPurchase  status_payments NOT NULL DEFAULT 'Pendiente',
+    createdAt       TIMESTAMP DEFAULT NOW(),
+    updatedAt       TIMESTAMP DEFAULT NOW(),
+    deletedAt       TIMESTAMP
+);
+
+-- purchase_details
+CREATE TABLE purchase_details (
+    purchaseDetailId       SERIAL PRIMARY KEY,
+    purchaseId             INTEGER NOT NULL REFERENCES purchases(purchaseId),
+    productId              INTEGER NOT NULL REFERENCES products(productId),
+    liters                 DECIMAL(10,2) NOT NULL,
+    pucharsePriceByLiters  DECIMAL(10,2) NOT NULL,
+    createdAt              TIMESTAMP DEFAULT NOW(),
+    updatedAt              TIMESTAMP DEFAULT NOW()
+);
+
+-- sales
+CREATE TABLE sales (
+    saleId           SERIAL PRIMARY KEY,
+    clientId         INTEGER NOT NULL REFERENCES clients(clientId),
+    vehicleId        INTEGER NOT NULL REFERENCES vehicles(vehicleId),
+    paymentMethodId  INTEGER NOT NULL REFERENCES payment_methods(paymentMethodId),
+    statusSale       status_payments NOT NULL DEFAULT 'Pendiente',
+    stateusWashing   washing_status NOT NULL DEFAULT 'En espera',
+    saleDate         TIMESTAMP NOT NULL DEFAULT NOW(),
+    createdAt        TIMESTAMP DEFAULT NOW(),
+    updatedAt        TIMESTAMP DEFAULT NOW(),
+    deletedAt        TIMESTAMP
+);
+
+-- sales_details
+CREATE TABLE sales_details (
+    saleDetailId           SERIAL PRIMARY KEY,
+    saleId                 INTEGER NOT NULL REFERENCES sales(saleId),
+    serviceTypeVehicleId   INTEGER NOT NULL REFERENCES services_type_vehicle(serviceTypeVehicleId),
+    comboOriginId          INTEGER REFERENCES combos(comboId),
+    salePrice              DECIMAL(10,2) NOT NULL,
+    note                   TEXT,
+    createdAt              TIMESTAMP DEFAULT NOW(),
+    updatedAt              TIMESTAMP DEFAULT NOW()
+);
+
+-- commissions
+CREATE TABLE commissions (
+    commissionId            SERIAL PRIMARY KEY,
+    employeeId              INTEGER NOT NULL REFERENCES employees(employeeId),
+    saleDetailId            INTEGER NOT NULL REFERENCES sales_details(saleDetailId),
+    comissionTotal          DECIMAL(10,2) NOT NULL,
+    statusPaymentComission  status_payments NOT NULL DEFAULT 'Pendiente',
+    active                  BOOLEAN DEFAULT TRUE,
+    createdAt               TIMESTAMP DEFAULT NOW(),
+    updatedAt               TIMESTAMP DEFAULT NOW(),
+    deletedAt               TIMESTAMP,
+    UNIQUE(saleDetailId, employeeId)
+);
