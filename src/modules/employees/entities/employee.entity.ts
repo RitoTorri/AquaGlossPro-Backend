@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, OneToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Job } from '../../jobs/entities/job.entity';
 
 @Entity('employees')
 export class Employee {
@@ -8,14 +9,13 @@ export class Employee {
     @Column({ nullable: false })
     jobId: number;
 
-
     @Column({ nullable: false, length: 40 })
     names: string;
 
     @Column({ nullable: false, length: 40 })
     lastnames: string;
 
-    @Column({ nullable: false, length: 100 })
+    @Column({ nullable: false, length: 40 })
     email: string;
 
     @Column({ nullable: false, length: 25 })
@@ -36,4 +36,9 @@ export class Employee {
 
     @DeleteDateColumn({ type: 'timestamptz', default: null })
     deletedAt: Date | null;
+
+    // Relaciones
+    @ManyToOne(() => Job, (job) => job.employee)
+    @JoinColumn({ name: 'jobId' })
+    job: Job;
 }
