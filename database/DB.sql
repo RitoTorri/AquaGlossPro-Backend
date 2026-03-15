@@ -215,10 +215,7 @@ CREATE TABLE purchases (
     supplierId      INTEGER NOT NULL REFERENCES supplier(supplierId),
     purchaseDate    TIMESTAMP NOT NULL DEFAULT NOW(),
     paymentMethodId INTEGER NOT NULL REFERENCES payment_methods(paymentMethodId),
-    statusPurchase  status_payments NOT NULL DEFAULT 'Pendiente',
-    createdAt       TIMESTAMP DEFAULT NOW(),
-    updatedAt       TIMESTAMP DEFAULT NOW(),
-    deletedAt       TIMESTAMP
+    statusPurchase  status_payments NOT NULL DEFAULT 'Pendiente'
 );
 
 -- purchase_details
@@ -228,8 +225,6 @@ CREATE TABLE purchase_details (
     productId              INTEGER NOT NULL REFERENCES products(productId),
     liters                 DECIMAL(10,2) NOT NULL,
     pucharsePriceByLiters  DECIMAL(10,2) NOT NULL,
-    createdAt              TIMESTAMP DEFAULT NOW(),
-    updatedAt              TIMESTAMP DEFAULT NOW()
 );
 
 -- sales
@@ -241,9 +236,7 @@ CREATE TABLE sales (
     statusSale       status_payments NOT NULL DEFAULT 'Pendiente',
     stateusWashing   washing_status NOT NULL DEFAULT 'En espera',
     saleDate         TIMESTAMP NOT NULL DEFAULT NOW(),
-    createdAt        TIMESTAMP DEFAULT NOW(),
-    updatedAt        TIMESTAMP DEFAULT NOW(),
-    deletedAt        TIMESTAMP
+    initialState     TEXT,
 );
 
 -- sales_details
@@ -254,8 +247,6 @@ CREATE TABLE sales_details (
     comboOriginId          INTEGER REFERENCES combos(comboId),
     salePrice              DECIMAL(10,2) NOT NULL,
     note                   TEXT,
-    createdAt              TIMESTAMP DEFAULT NOW(),
-    updatedAt              TIMESTAMP DEFAULT NOW()
 );
 
 -- commissions
@@ -267,7 +258,5 @@ CREATE TABLE commissions (
     statusPaymentComission  status_payments NOT NULL DEFAULT 'Pendiente',
     active                  BOOLEAN DEFAULT TRUE,
     createdAt               TIMESTAMP DEFAULT NOW(),
-    updatedAt               TIMESTAMP DEFAULT NOW(),
-    deletedAt               TIMESTAMP,
     UNIQUE(saleDetailId, employeeId)
 );

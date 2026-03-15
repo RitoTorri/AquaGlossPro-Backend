@@ -17,6 +17,7 @@ import { JobsModule } from './modules/jobs/jobs.module';
 import { ProductsModule } from './modules/products/products.module';
 import { PaymentsMethodsModule } from './modules/payments-methods/payments-methods.module';
 import { TypeVehicleModule } from './modules/type-vehicle/type-vehicle.module';
+import { VehiclesModule } from './modules/vehicles/vehicles.module';
 
 @Module({
   imports: [
@@ -57,7 +58,8 @@ import { TypeVehicleModule } from './modules/type-vehicle/type-vehicle.module';
     PaymentsMethodsModule,
 
     TypeVehicleModule,
-    
+
+    VehiclesModule
   ],
   controllers: [PermissionsController]
 })
