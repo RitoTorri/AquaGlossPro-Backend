@@ -1,16 +1,22 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, OneToMany } from 'typeorm';
-import { ServicesTypeVehicle } from '../../services-type-vehicle/entities/services-type-vehicle.entity';
+import { CombosServiceEntity } from '../../combos-services/entities/combos-service.entity';
 
-@Entity('services')
-export class Service {
+@Entity('combos')
+export class Combo {
     @PrimaryGeneratedColumn()
-    serviceId: number;
+    comboId: number;
 
     @Column({ length: 40, unique: true })
     name: string;
 
-    @Column({ type: 'decimal', precision: 5, scale: 2, default: 0 })
-    comissionPercentage: number;
+    @Column({ type: 'decimal', precision: 5, scale: 2 })
+    discountPercentage: number;
+
+    @Column({ default: false })
+    isPromotion: boolean;
+
+    @Column({ type: 'timestamptz', nullable: true })
+    expirationDate: Date;
 
     @Column({ default: true })
     active: boolean;
@@ -24,6 +30,6 @@ export class Service {
     @DeleteDateColumn({ type: 'timestamptz', nullable: true })
     deletedAt: Date | null;
 
-    @OneToMany(() => ServicesTypeVehicle, (stv) => stv.service)
-    servicesTypeVehicle: ServicesTypeVehicle[];
+    @OneToMany(() => CombosServiceEntity, (cs) => cs.combo)
+    combosServices: CombosServiceEntity[];
 }

@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ILike } from 'typeorm';
 import { Employee } from './entities/employee.entity';
@@ -7,155 +7,128 @@ import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { PaginationDto } from '../../shared/dto/pagination.dto';
 import { JobsService } from '../jobs/jobs.service';
 
-
 @Injectable()
 export class EmployeesService {
-  constructor(
-    @InjectRepository(Employee)
-    private readonly employeeRepository: Repository<Employee>,
-    private readonly jobsService: JobsService,
-  ) { }
+    constructor(
+        @InjectRepository(Employee)
+        private readonly employeeRepository: Repository<Employee>,
+        private readonly jobsService: JobsService,
+    ) {}
 
-  async create(createEmployeeDto: CreateEmployeeDto) {
-    const isEmailAlreadyExists = await this.findEmployeeByEmail(createEmployeeDto.email);
-    if (isEmailAlreadyExists) throw new ConflictException('Ya existe un empleado con ese email.');
-  
-    const isCiAlreadyExists = await this.findEmployeeByCi(createEmployeeDto.ci);
-    if (isCiAlreadyExists) throw new ConflictException('Ya existe un empleado con ese CI.');
+    async create(createEmployeeDto: CreateEmployeeDto) {
+        const emailExists = await this.findByEmail(createEmployeeDto.email);
+        if (emailExists) throw new ConflictException('Ya existe un empleado con ese email');
 
-    const isNumberPhoneAlreadyExists = await this.findEmployeeByNumberPhone(createEmployeeDto.numberPhone);
-    if (isNumberPhoneAlreadyExists) throw new ConflictException('Ya existe un empleado con ese número de teléfono.');
+        const ciExists = await this.findByCi(createEmployeeDto.ci);
+        if (ciExists) throw new ConflictException('Ya existe un empleado con ese CI');
 
-    const isJobExists = await this.jobsService.findById(createEmployeeDto.jobId);
-    if (!isJobExists) throw new NotFoundException('No existe un puesto de trabajo con ese ID.');
+        const phoneExists = await this.findByNumberPhone(createEmployeeDto.numberPhone);
+        if (phoneExists) throw new ConflictException('Ya existe un empleado con ese número de teléfono');
 
-    const newEmployee = this.employeeRepository.create(createEmployeeDto);
-    return await this.employeeRepository.save(newEmployee);
-  }
+        const jobExists = await this.jobsService.findOne(createEmployeeDto.jobId);
+        if (!jobExists) throw new NotFoundException('No existe un puesto de trabajo con ese ID');
 
-
-  async findEmployees(paginationDto: PaginationDto) {
-    const [employees, total] = await this.employeeRepository.findAndCount({
-      where: [
-        {active: paginationDto.active, names: ILike(`%${paginationDto.param?.toUpperCase()}%`)},
-        {active: paginationDto.active, lastnames: ILike(`%${paginationDto.param?.toUpperCase()}%`)},
-        {active: paginationDto.active, ci: paginationDto.param},
-      ],
-      take: paginationDto.limit,
-      skip: (paginationDto.page - 1) * paginationDto.limit,
-      select: {
-        employeeId: true,
-        job: {
-          jobId: true,
-          name: true,
-          baseSalary: true,
-        },
-        names: true,
-        lastnames: true,
-        email: true,
-        numberPhone: true,
-        ci: true,
-        active: true,
-      },
-      relations: ['job'],
-      order: { employeeId: 'ASC' },
-      withDeleted: true,
-    });
-
-    return {
-      data: employees,
-      meta: {
-        totalItems: total,
-        itemCount: employees.length,
-        itemPerPage: paginationDto.limit,
-        currentPage: paginationDto.page,
-        totalPages: Math.ceil(total / paginationDto.limit),
-      }
-    }
-  }
-
-
-  async update(id: number, updateEmployeeDto: UpdateEmployeeDto) {
-    const isEmployeeExists = await this.findEmployeeById(id);
-    if (!isEmployeeExists) throw new NotFoundException('No existe un empleado con el ID proporcionado');
-    if (!isEmployeeExists.active) throw new ConflictException('El empleado está inactivo. No puede ser actualizado');
-
-    // Verificamos que la cedula  que se va a actualizar no exista
-    if (updateEmployeeDto.ci) {
-      const isCiAlreadyExists = await this.findEmployeeByCi(updateEmployeeDto.ci);
-      if (isCiAlreadyExists) throw new ConflictException('Ya existe un empleado con ese CI.');
+        const employee = this.employeeRepository.create(createEmployeeDto);
+        return this.employeeRepository.save(employee);
     }
 
-    // Verificamos que el email que se va a actualizar no exista
-    if (updateEmployeeDto.email) {
-      const isEmailAlreadyExists = await this.findEmployeeByEmail(updateEmployeeDto.email);
-      if (isEmailAlreadyExists) throw new ConflictException('Ya existe un empleado con ese email.');
+    async findEmployees(paginationDto: PaginationDto) {
+        const { active, page, limit, param } = paginationDto;
+        const where = param
+            ? [
+                { active, names: ILike(`%${param.toUpperCase()}%`) },
+                { active, lastnames: ILike(`%${param.toUpperCase()}%`) },
+                { active, ci: param },
+            ]
+            : { active };
+
+        const [employees, total] = await this.employeeRepository.findAndCount({
+            where,
+            relations: ['job'],
+            take: limit,
+            skip: (page - 1) * limit,
+            order: { employeeId: 'ASC' },
+            withDeleted: true,
+        });
+
+        return {
+            data: employees,
+            meta: {
+                totalItems: total,
+                itemCount: employees.length,
+                itemsPerPage: limit,
+                totalPages: Math.ceil(total / limit),
+                currentPage: page,
+            },
+        };
     }
 
-    // Verificamos que el número de teléfono que se va a actualizar no exista
-    if (updateEmployeeDto.numberPhone) {
-      const isNumberPhoneAlreadyExists = await this.findEmployeeByNumberPhone(updateEmployeeDto.numberPhone);
-      if (isNumberPhoneAlreadyExists) throw new ConflictException('Ya existe un empleado con ese número de teléfono.');
+    async findOne(id: number): Promise<Employee> {
+        const employee = await this.employeeRepository.findOne({
+            where: { employeeId: id },
+            relations: ['job'],
+            withDeleted: true,
+        });
+        if (!employee) throw new NotFoundException('Empleado no encontrado');
+        return employee;
     }
 
-    // Actualizamos el empleado
-    const updateEmployee = await this.employeeRepository.merge(isEmployeeExists, updateEmployeeDto);
-    return await this.employeeRepository.save(updateEmployee);
-  }
+    async update(id: number, updateEmployeeDto: UpdateEmployeeDto) {
+        const employee = await this.findOne(id);
+        if (!employee.active) throw new ConflictException('El empleado está inactivo');
 
+        if (updateEmployeeDto.email) {
+            const emailExists = await this.findByEmail(updateEmployeeDto.email);
+            if (emailExists && emailExists.employeeId !== id) {
+                throw new ConflictException('Ya existe un empleado con ese email');
+            }
+        }
+        if (updateEmployeeDto.ci) {
+            const ciExists = await this.findByCi(updateEmployeeDto.ci);
+            if (ciExists && ciExists.employeeId !== id) {
+                throw new ConflictException('Ya existe un empleado con ese CI');
+            }
+        }
+        if (updateEmployeeDto.numberPhone) {
+            const phoneExists = await this.findByNumberPhone(updateEmployeeDto.numberPhone);
+            if (phoneExists && phoneExists.employeeId !== id) {
+                throw new ConflictException('Ya existe un empleado con ese teléfono');
+            }
+        }
+        if (updateEmployeeDto.jobId) {
+            await this.jobsService.findOne(updateEmployeeDto.jobId);
+        }
 
-  async remove(id: number) {
-    const employeeExists = await this.findEmployeeById(id);
-    if (!employeeExists) throw new NotFoundException('No existe un empleado con el ID proporcionado');
-    if (!employeeExists.active) throw new ConflictException('El empleado está inactivo. No puede ser eliminado');
+        Object.assign(employee, updateEmployeeDto);
+        return this.employeeRepository.save(employee);
+    }
 
-    employeeExists.active = false;
-    employeeExists.deletedAt = new Date();
-    return await this.employeeRepository.save(employeeExists);
-  }
+    async remove(id: number) {
+        const employee = await this.findOne(id);
+        if (!employee.active) throw new ConflictException('El empleado ya está inactivo');
+        employee.active = false;
+        employee.deletedAt = new Date();
+        return this.employeeRepository.save(employee); // Devuelve la entidad actualizada
+    }
 
-  
-  async restore(id: number) {
-    const employeeExists = await this.findEmployeeById(id);
-    if (!employeeExists) throw new NotFoundException('No existe un empleado con el ID proporcionado');
-    if (employeeExists.active) throw new ConflictException('El empleado está activo. No puede ser restaurado');
+    async restore(id: number) {
+        const employee = await this.findOne(id);
+        if (employee.active) throw new ConflictException('El empleado ya está activo');
+        employee.active = true;
+        employee.deletedAt = null;
+        return this.employeeRepository.save(employee); // Devuelve la entidad actualizada
+    }
 
-    return await this.employeeRepository.update(id, { active: true, deletedAt: null });
-  }
+    // Helpers
+    async findByEmail(email: string): Promise<Employee | null> {
+        return this.employeeRepository.findOne({ where: { email }, withDeleted: true });
+    }
 
+    async findByCi(ci: string): Promise<Employee | null> {
+        return this.employeeRepository.findOne({ where: { ci }, withDeleted: true });
+    }
 
-  async findEmployeeByCi(ci: string) {
-    return await this.employeeRepository.findOne({
-      where: { ci },
-      select: ['employeeId', 'jobId', 'names', 'lastnames', 'email', 'numberPhone', 'ci', 'active'],
-      withDeleted: true,
-    });
-  }
-
-
-  async findEmployeeByEmail(email: string) {
-    return await this.employeeRepository.findOne({
-      where: { email },
-      select: ['employeeId', 'jobId', 'names', 'lastnames', 'email', 'numberPhone', 'ci', 'active'],
-      withDeleted: true,
-    });
-  }
-
-
-  async findEmployeeByNumberPhone(numberPhone: string) {
-    return await this.employeeRepository.findOne({
-      where: { numberPhone },
-      select: ['employeeId', 'jobId', 'names', 'lastnames', 'email', 'numberPhone', 'ci', 'active'],
-      withDeleted: true,
-    });
-  }
-
-
-  async findEmployeeById(id: number) {
-    return await this.employeeRepository.findOne({
-      where: { employeeId: id },
-      select: ['employeeId', 'jobId', 'names', 'lastnames', 'email', 'numberPhone', 'ci', 'active'],
-      withDeleted: true,
-    });
-  }
+    async findByNumberPhone(phone: string): Promise<Employee | null> {
+        return this.employeeRepository.findOne({ where: { numberPhone: phone }, withDeleted: true });
+    }
 }

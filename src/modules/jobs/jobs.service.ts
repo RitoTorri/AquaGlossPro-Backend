@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ILike } from 'typeorm';
 import { Job } from './entities/job.entity';
@@ -7,117 +7,94 @@ import { UpdateJobDto } from './dto/update-job.dto';
 
 @Injectable()
 export class JobsService {
-  constructor(
-    @InjectRepository(Job)
-    private readonly jobsRepository: Repository<Job>,
-  ) {}
+    constructor(
+        @InjectRepository(Job)
+        private readonly jobsRepository: Repository<Job>,
+    ) {}
 
-  async create(createJobDto: CreateJobDto) {
-    // Validar que el nombre no exista
-    const jobExists = await this.findByName(createJobDto.name);
-    if (jobExists) {
-      throw new ConflictException('Ya existe un puesto de trabajo con ese nombre');
+    async create(createJobDto: CreateJobDto) {
+        const existing = await this.findByName(createJobDto.name);
+        if (existing) {
+            throw new ConflictException('Ya existe un puesto de trabajo con ese nombre');
+        }
+        const job = this.jobsRepository.create(createJobDto);
+        return this.jobsRepository.save(job);
     }
 
-    const newJob = this.jobsRepository.create(createJobDto);
-    return await this.jobsRepository.save(newJob);
-  }
-
-  async findAll(active: boolean, page: number, limit: number, param: string) {
-    try {
-      const where = param 
-        ? { active, name: ILike(`%${param.toUpperCase()}%`) }
-        : { active };
-
-      const [jobs, total] = await this.jobsRepository.findAndCount({
-        where,
-        take: limit,
-        skip: (page - 1) * limit,
-        select: {
-          jobId: true,
-          name: true,
-          baseSalary: true,
-          active: true,
-          createdAt: true,
-        },
-        order: { jobId: 'ASC' },
-        withDeleted: true,
-      });
-
-      return {
-        data: jobs,
-        meta: {
-          totalItems: total,
-          itemCount: jobs.length,
-          itemsPerPage: limit,
-          totalPages: Math.ceil(total / limit),
-          currentPage: page,
-        },
-      };
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async update(id: number, updateJobDto: UpdateJobDto) {
-    const jobExists = await this.findById(id);
-    if (!jobExists) {
-      throw new NotFoundException('No se encontró el puesto de trabajo con el ID proporcionado');
-    }
-    if (!jobExists.active) {
-      throw new ConflictException('El puesto de trabajo está inactivo. No puede ser actualizado');
+    async findAll(active: boolean, page: number, limit: number, param: string) {
+        const where = param
+            ? { active, name: ILike(`%${param.toUpperCase()}%`) }
+            : { active };
+        const [data, total] = await this.jobsRepository.findAndCount({
+            where,
+            take: limit,
+            skip: (page - 1) * limit,
+            order: { jobId: 'ASC' },
+            withDeleted: true,
+        });
+        return {
+            data,
+            meta: {
+                totalItems: total,
+                itemCount: data.length,
+                itemsPerPage: limit,
+                totalPages: Math.ceil(total / limit),
+                currentPage: page,
+            },
+        };
     }
 
-    if (updateJobDto.name) {
-      const jobWithSameName = await this.findByName(updateJobDto.name);
-      if (jobWithSameName && jobWithSameName.jobId !== id) {
-        throw new ConflictException('Ya existe un puesto de trabajo con ese nombre');
-      }
+    async findOne(id: number): Promise<Job> {
+        const job = await this.jobsRepository.findOne({
+            where: { jobId: id },
+            withDeleted: true,
+        });
+        if (!job) {
+            throw new NotFoundException(`Puesto de trabajo con ID ${id} no encontrado`);
+        }
+        return job;
     }
 
-    const updatedJob = this.jobsRepository.merge(jobExists, updateJobDto);
-    return await this.jobsRepository.save(updatedJob);
-  }
-
-  async remove(id: number) {
-    const jobExists = await this.findById(id);
-    if (!jobExists) {
-      throw new NotFoundException('No se encontró el puesto de trabajo con el ID proporcionado');
-    }
-    if (!jobExists.active) {
-      throw new ConflictException('El puesto de trabajo ya está inactivo');
-    }
-
-    jobExists.active = false;
-    jobExists.deletedAt = new Date();
-    return await this.jobsRepository.save(jobExists);
-  }
-
-  async restore(id: number) {
-    const jobExists = await this.findById(id);
-    if (!jobExists) {
-      throw new NotFoundException('No se encontró el puesto de trabajo con el ID proporcionado');
-    }
-    if (jobExists.active) {
-      throw new ConflictException('El puesto de trabajo ya está activo');
+    async update(id: number, updateJobDto: UpdateJobDto) {
+        const job = await this.findOne(id);
+        if (!job.active) {
+            throw new ConflictException('El puesto de trabajo está inactivo');
+        }
+        if (updateJobDto.name) {
+            const existing = await this.findByName(updateJobDto.name);
+            if (existing && existing.jobId !== id) {
+                throw new ConflictException('Ya existe un puesto de trabajo con ese nombre');
+            }
+        }
+        Object.assign(job, updateJobDto);
+        return this.jobsRepository.save(job);
     }
 
-    jobExists.active = true;
-    jobExists.deletedAt = null;
-    return await this.jobsRepository.save(jobExists);
-  }
+    async remove(id: number) {
+        const job = await this.findOne(id);
+        if (!job.active) {
+            throw new ConflictException('El puesto de trabajo ya está inactivo');
+        }
+        job.active = false;
+        job.deletedAt = new Date();
+        return this.jobsRepository.save(job);
+    }
 
-  async findByName(name: string): Promise<Job | null> {
-    return await this.jobsRepository.findOne({
-      where: { name },
-      withDeleted: true,
-    });
-  }
+    async restore(id: number) {
+        const job = await this.findOne(id);
+        if (job.active) {
+            throw new ConflictException('El puesto de trabajo ya está activo');
+        }
+        job.active = true;
+        job.deletedAt = null;
+        return this.jobsRepository.save(job);
+    }
 
-  async findById(id: number): Promise<Job | null> {
-    return await this.jobsRepository.findOne({
-      where: { jobId: id },
-      withDeleted: true,
-    });
-  }
+    async findByName(name: string): Promise<Job | null> {
+        return this.jobsRepository.findOne({ where: { name }, withDeleted: true });
+    }
+
+    async findById(id: number): Promise<Job | null> {
+        return this.jobsRepository.findOne({ where: { jobId: id }, withDeleted: true });
+    }
 }

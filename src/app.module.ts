@@ -17,6 +17,10 @@ import { JobsModule } from './modules/jobs/jobs.module';
 import { ProductsModule } from './modules/products/products.module';
 import { PaymentsMethodsModule } from './modules/payments-methods/payments-methods.module';
 import { TypeVehicleModule } from './modules/type-vehicle/type-vehicle.module';
+import { CombosModule } from './modules/combos/combos.module';
+import { ServicesTypeVehicleModule } from './modules/services-type-vehicle/services-type-vehicle.module';
+import { CommissionsModule } from './modules/commissions/commissions.module';
+import { CombosServicesModule } from './modules/combos-services/combos-services.module';
 
 @Module({
   imports: [
@@ -57,6 +61,14 @@ import { TypeVehicleModule } from './modules/type-vehicle/type-vehicle.module';
     PaymentsMethodsModule,
 
     TypeVehicleModule,
+
+    CombosModule,
+
+    ServicesTypeVehicleModule,
+
+    CommissionsModule,
+
+    CombosServicesModule,
     
   ],
   controllers: [PermissionsController]
