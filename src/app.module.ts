@@ -18,6 +18,7 @@ import { ProductsModule } from './modules/products/products.module';
 import { PaymentsMethodsModule } from './modules/payments-methods/payments-methods.module';
 import { TypeVehicleModule } from './modules/type-vehicle/type-vehicle.module';
 import { VehiclesModule } from './modules/vehicles/vehicles.module';
+import { CategoriesModule } from './modules/categories/categories.module';
 
 @Module({
   imports: [
@@ -59,7 +60,9 @@ import { VehiclesModule } from './modules/vehicles/vehicles.module';
 
     TypeVehicleModule,
 
-    VehiclesModule
+    VehiclesModule,
+
+    CategoriesModule,
   ],
   controllers: [PermissionsController]
 })

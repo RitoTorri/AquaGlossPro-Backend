@@ -4,13 +4,15 @@ import { Repository, ILike } from 'typeorm';
 import { Product } from './entities/product.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { CategoriesService } from '../categories/categories.service';
 
 @Injectable()
 export class ProductsService {
   constructor(
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
-  ) {}
+    private readonly categoriesService: CategoriesService,
+  ) { }
 
   async create(createProductDto: CreateProductDto) {
     // Validar que el nombre no exista
@@ -24,13 +26,18 @@ export class ProductsService {
       throw new ConflictException('El stock mínimo debe ser menor que el stock máximo');
     }
 
+    // Validar que exista la categoria
+    const isCategoryExist = await this.categoriesService.findById(createProductDto.categoryId);
+    if (!isCategoryExist) throw new NotFoundException('La categoría no existe. Intente con otra.');
+    if (!isCategoryExist.active) throw new ConflictException('La categoría no está activa. No puede ser asignada a este producto');
+
     const newProduct = this.productsRepository.create(createProductDto);
     return await this.productsRepository.save(newProduct);
   }
 
   async findAll(active: boolean, page: number, limit: number, param: string) {
     try {
-      const where = param 
+      const where = param
         ? { active, name: ILike(`%${param.toUpperCase()}%`) }
         : { active };
 
@@ -47,8 +54,10 @@ export class ProductsService {
           maxStock: true,
           active: true,
           createdAt: true,
+          category: { categoryId: true, name: true, active: true },
         },
         order: { productId: 'ASC' },
+        relations: ['category'],
         withDeleted: true,
       });
 
@@ -83,10 +92,16 @@ export class ProductsService {
       }
     }
 
+    if (updateProductDto.categoryId) {
+      const isCategoryExist = await this.categoriesService.findById(updateProductDto.categoryId);
+      if (!isCategoryExist) throw new NotFoundException('La categoría no existe. Intente con otra.');
+      if (!isCategoryExist.active) throw new ConflictException('La categoría no está activa. No puede ser asignada a este producto');
+    }
+
     // Validar minStock y maxStock si vienen en la actualización
     const minStock = updateProductDto.minStock ?? productExists.minStock;
     const maxStock = updateProductDto.maxStock ?? productExists.maxStock;
-    
+
     if (minStock >= maxStock) {
       throw new ConflictException('El stock mínimo debe ser menor que el stock máximo');
     }

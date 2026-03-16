@@ -1,8 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, MinLength, MaxLength, Matches, IsNumber, Min } from 'class-validator';
+import { IsString, IsNotEmpty, MinLength, MaxLength, Matches, IsNumber, Min, IsInt } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class CreateProductDto {
+    @ApiProperty({
+        description: 'ID de la categoría a la que pertenece',
+        example: 1,
+        minimum: 1,
+    })
+    @IsInt()
+    @IsNotEmpty()
+    categoryId: number;
+
     @ApiProperty({
         example: 'SHAMPOO PARA AUTOS',
         description: 'Nombre del producto',

@@ -1,9 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Category } from '../../categories/entities/category.entity';
 
 @Entity('products')
 export class Product {
     @PrimaryGeneratedColumn()
     productId: number;
+
+    @Column()
+    categoryId: number;
 
     @Column({ length: 100, unique: true })
     name: string;
@@ -31,4 +35,13 @@ export class Product {
 
     @DeleteDateColumn({ type: 'timestamptz', nullable: true })
     deletedAt: Date | null;
+
+    // Relations
+    @ManyToOne(() => Category, (category) => category.products)
+    @JoinColumn({
+        name: 'categoryId', // Nombre de la columna en la tabla 'products' (DB)
+        referencedColumnName: 'categoryId', // Nombre del atributo @PrimaryGeneratedColumn en 'Category'
+        foreignKeyConstraintName: 'fk_product_category' // Nombre del "candado" en la DB
+    })
+    category: Category;
 }
