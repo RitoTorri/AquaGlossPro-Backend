@@ -5,6 +5,7 @@ import { Product } from './entities/product.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { CategoriesService } from '../categories/categories.service';
+import { typeCategories } from '../../shared/enums/types.services.enums';
 
 @Injectable()
 export class ProductsService {
@@ -30,6 +31,7 @@ export class ProductsService {
     const isCategoryExist = await this.categoriesService.findById(createProductDto.categoryId);
     if (!isCategoryExist) throw new NotFoundException('La categoría no existe. Intente con otra.');
     if (!isCategoryExist.active) throw new ConflictException('La categoría no está activa. No puede ser asignada a este producto');
+    if (isCategoryExist.type !== typeCategories.PRODUCTS) throw new ConflictException('La categoría seleccionada no es una de tipo productos');
 
     const newProduct = this.productsRepository.create(createProductDto);
     return await this.productsRepository.save(newProduct);
@@ -54,7 +56,7 @@ export class ProductsService {
           maxStock: true,
           active: true,
           createdAt: true,
-          category: { categoryId: true, name: true, active: true },
+          category: { categoryId: true, name: true, type: true, active: true },
         },
         order: { productId: 'ASC' },
         relations: ['category'],
@@ -96,6 +98,7 @@ export class ProductsService {
       const isCategoryExist = await this.categoriesService.findById(updateProductDto.categoryId);
       if (!isCategoryExist) throw new NotFoundException('La categoría no existe. Intente con otra.');
       if (!isCategoryExist.active) throw new ConflictException('La categoría no está activa. No puede ser asignada a este producto');
+      if (isCategoryExist.type !== typeCategories.PRODUCTS) throw new ConflictException('La categoría seleccionada no es una de tipo productos');
     }
 
     // Validar minStock y maxStock si vienen en la actualización

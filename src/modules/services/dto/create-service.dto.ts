@@ -1,8 +1,17 @@
-import { IsNotEmpty, IsNumber, IsString, MaxLength, MinLength, Min, Max, Matches } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString, MaxLength, MinLength, Min, Max, Matches, IsInt } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateServiceDto {
+    @ApiProperty({
+        description: 'ID de la categoría a la que pertenece',
+        example: 1,
+        minimum: 1,
+    })
+    @IsInt()
+    @IsNotEmpty()
+    categoryId: number;
+
     @ApiProperty({ 
         required: true,
         description: 'Nombre del servicio que vende el negocio',

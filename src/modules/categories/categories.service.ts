@@ -1,10 +1,11 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, ILike } from 'typeorm';
 import { Category } from './entities/category.entity';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { PaginationDto } from '../../shared/dto/pagination.dto';
+import { typeCategories } from '../../shared/enums/types.services.enums';
 
 @Injectable()
 export class CategoriesService {
@@ -15,8 +16,8 @@ export class CategoriesService {
 
   async create(createCategoryDto: CreateCategoryDto) {
     // Validamos que el nombre no esté repetido
-    const category = await this.findByName(createCategoryDto.name);
-    if (category) throw new ConflictException('Ya existe una categoría con este nombre.');
+    const category = await this.findByName(createCategoryDto.name, createCategoryDto.type);
+    if (category) throw new ConflictException('Ya existe una categoría con este nombre para el tipo seleccionado');
 
     const createdCategory = this.categoryRepository.create(createCategoryDto);
     return await this.categoryRepository.save(createdCategory);
@@ -24,12 +25,15 @@ export class CategoriesService {
 
   async findAll(paginatiionDto: PaginationDto) {
     const [categories, total] = await this.categoryRepository.findAndCount({
-      where: { active: paginatiionDto.active, name: paginatiionDto.param },
+      where: [
+        { active: paginatiionDto.active, name: ILike(`%${paginatiionDto.param?.toLowerCase()}%`) },
+        { active: paginatiionDto.active, type: paginatiionDto.param as typeCategories },
+      ],
       take: paginatiionDto.limit,
       skip: (paginatiionDto.page - 1) * paginatiionDto.limit,
-      select: ['categoryId', 'name', 'description', 'active'],
+      select: ['categoryId', 'name', 'type', 'description', 'active'],
       order: {
-        categoryId: 'DESC',
+        categoryId: 'ASC',
       },
       withDeleted: true,
     });
@@ -61,9 +65,10 @@ export class CategoriesService {
     if (!isCategoryExistsById) throw new NotFoundException('No se encontro una categoria con el id proporcionado');
     if (!isCategoryExistsById.active) throw new ConflictException('La categoria ya esta eliminada. No puede ser actualizada.');
 
+    // Validamos que el nombre no esté repetido para el tipo seleccionado
     if (updateCategoryDto.name) {
-      const isNameCategoryAlreadyExists = await this.findByName(updateCategoryDto.name);
-      if (isNameCategoryAlreadyExists) throw new ConflictException('Ya existe una categoría con este nombre.');
+      const isNameCategoryAlreadyExists = await this.findByName(updateCategoryDto.name, isCategoryExistsById.type);
+      if (isNameCategoryAlreadyExists) throw new ConflictException('Ya existe una categoría con este nombre para el tipo seleccionado');
     }
 
     const updatedCategory = this.categoryRepository.merge(isCategoryExistsById, updateCategoryDto);
@@ -81,18 +86,17 @@ export class CategoriesService {
   }
 
   async findById(id: number) {
-
     return await this.categoryRepository.findOne({
       where: { categoryId: id },
-      select: ['categoryId', 'name', 'description', 'active'],
+      select: ['categoryId', 'name', 'type', 'description', 'active'],
       withDeleted: true,
     })
   }
 
-  async findByName(name: string) {
+  async findByName(name: string, type: typeCategories) {
     return await this.categoryRepository.findOne({
-      where: { name: name },
-      select: ['categoryId', 'name', 'description', 'active'],
+      where: { name: name, type: type },
+      select: ['categoryId', 'name', 'type', 'description', 'active'],
       withDeleted: true,
     })
   }

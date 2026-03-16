@@ -1,8 +1,20 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, Matches, MinLength } from 'class-validator';
 import { Transform } from 'class-transformer';
+import { typeCategories } from '../../../shared/enums/types.services.enums';
 
 export class CreateCategoryDto {
+    @ApiProperty({
+        description: 'Tipo de categoría. Solo puede ser "products" o "services"',
+        example: 'products',
+        enum: typeCategories,
+    })
+    @IsString({ message: 'El tipo de categoría debe ser una cadena de texto' })
+    @IsNotEmpty({ message: 'El tipo de categoría es obligatorio' })
+    @Matches(/^(products|services)$/, { message: 'El tipo de categoría debe ser "products" o "services"' })
+    @Transform(({ value }) => typeof value === 'string' ? value.toLowerCase().trim() : value)
+    type: typeCategories;
+
     @ApiProperty({
         description: 'Nombre de la categoría',
         example: 'ELECTRONICA',

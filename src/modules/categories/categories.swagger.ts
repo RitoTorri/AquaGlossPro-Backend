@@ -17,7 +17,7 @@ function findAllCategories() {
     return applyDecorators(
         ApiOperation({
             summary: 'Lista de categorías',
-            description: 'Obtiene la lista de categorías filtradas por nombres, estado o obtener todos.'
+            description: 'Obtiene la lista de categorías filtradas por nombres, estado, tipo o todos.'
         }),
         ApiOkResponse({ description: 'Categorías obtenidas exitosamente' }),
         ApiNotFoundResponse({ description: 'No se encontraron categorías' })
