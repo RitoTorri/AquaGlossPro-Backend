@@ -22,11 +22,6 @@ export class ProductsService {
       throw new ConflictException('Ya existe un producto con ese nombre');
     }
 
-    // Validar que minStock sea menor que maxStock
-    if (createProductDto.minStock >= createProductDto.maxStock) {
-      throw new ConflictException('El stock mínimo debe ser menor que el stock máximo');
-    }
-
     // Validar que exista la categoria
     const isCategoryExist = await this.categoriesService.findById(createProductDto.categoryId);
     if (!isCategoryExist) throw new NotFoundException('La categoría no existe. Intente con otra.');
@@ -53,7 +48,6 @@ export class ProductsService {
           unitCostLiter: true,
           currentStock: true,
           minStock: true,
-          maxStock: true,
           active: true,
           createdAt: true,
           category: { categoryId: true, name: true, type: true, active: true },
@@ -99,14 +93,6 @@ export class ProductsService {
       if (!isCategoryExist) throw new NotFoundException('La categoría no existe. Intente con otra.');
       if (!isCategoryExist.active) throw new ConflictException('La categoría no está activa. No puede ser asignada a este producto');
       if (isCategoryExist.type !== typeCategories.PRODUCTS) throw new ConflictException('La categoría seleccionada no es una de tipo productos');
-    }
-
-    // Validar minStock y maxStock si vienen en la actualización
-    const minStock = updateProductDto.minStock ?? productExists.minStock;
-    const maxStock = updateProductDto.maxStock ?? productExists.maxStock;
-
-    if (minStock >= maxStock) {
-      throw new ConflictException('El stock mínimo debe ser menor que el stock máximo');
     }
 
     const updatedProduct = this.productsRepository.merge(productExists, updateProductDto);

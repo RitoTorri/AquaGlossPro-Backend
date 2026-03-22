@@ -1,32 +1,21 @@
 services:
-  db-gestion-autolavados:
-    image: postgres:18-alpine
-    container_name: gestion-autolavados-db
-    environment:
-      - POSTGRES_USER=${DB_USERNAME}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_DB=${DB_NAME}
+  db-aqua-gloss-pro:
+    image: postgres:17-alpine
+    container_name: db-aqua-gloss-pro-container
     ports:
-      - "${DB_PORT}:${DB_PORT}"
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
+    env_file:
+      - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
-  api-gestion-autolavados:
+  api-aqua-gloss-pro:
     build: .
-    container_name: gestion-autolavados-api
-    ports: 
+    container_name: api-aqua-gloss-pro-container
+    ports:
       - "${PORT}:${PORT}"
-    environment:
-      - PORT=${PORT}
-      - API_RATE_LIMIT_MAX=${API_RATE_LIMIT_MAX}
-      - API_RATE_LIMIT_WINDOW=${API_RATE_LIMIT_WINDOW}
-      - TOKEN_ACCESS=${TOKEN_ACCESS}
-      - TOKEN_ACCESS_REFRESH=${TOKEN_ACCESS_REFRESH}
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
+    env_file:
+      - .env
     depends_on:
-      - gestion-autolavados-db
+      - db-aqua-gloss-pro
 volumes:
   postgres_data:

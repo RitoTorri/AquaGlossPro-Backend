@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Category } from '../../categories/entities/category.entity';
+import { TypeUnit } from '../../../shared/enums/unit.type.enums';
 
 @Entity('products')
 export class Product {
@@ -12,6 +13,9 @@ export class Product {
     @Column({ length: 100, unique: true })
     name: string;
 
+    @Column({ type: 'enum', enum: TypeUnit, default: TypeUnit.LITERS })
+    unitType: TypeUnit;
+
     @Column({ type: 'decimal', precision: 10, scale: 2, nullable: false })
     unitCostLiter: number;
 
@@ -20,9 +24,6 @@ export class Product {
 
     @Column({ type: 'decimal', precision: 10, scale: 2, nullable: false })
     minStock: number;
-
-    @Column({ type: 'decimal', precision: 10, scale: 2, nullable: false })
-    maxStock: number;
 
     @Column({ default: true })
     active: boolean;

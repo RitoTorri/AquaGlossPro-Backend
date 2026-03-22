@@ -1,6 +1,6 @@
-export enum actionsPermissions  {
-    CREATE = 'create',
-    READ = 'read',
-    UPDATE = 'update',
-    DELETE = 'delete',
+export enum actionsPermissions {
+    CREATE = 'C',
+    READ = 'R',
+    UPDATE = 'U',
+    DELETE = 'D',
 }

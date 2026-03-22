@@ -1,4 +1,4 @@
 export enum typeCategories {
-    PRODUCTS = 'products',
-    SERVICES = 'services',
+    PRODUCTS = 'P',
+    SERVICES = 'S',
 }
