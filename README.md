@@ -71,10 +71,10 @@ Debes renombrar `.env.example` a `.env` y configurar:
 ```bash
 # SOLO PRODUCCIÓN
 # Construir imagen
-docker compose -f docker-compose.yml build
+docker compose build
 
 # Ejecutar contenedores
-docker compose -f docker-compose.yml up
+docker compose up
 ```
 
 ### 💻 En local (desarrollo):

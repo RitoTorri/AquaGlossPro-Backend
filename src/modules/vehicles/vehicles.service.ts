@@ -38,7 +38,6 @@ export class VehiclesService {
     return await this.vehiclesRepository.save(vehicle);
   }
 
-
   async findAll(paginationDto: PaginationDto) {
     const { limit, page, param, active } = paginationDto;
     const skip = (page - 1) * limit;
@@ -158,7 +157,6 @@ export class VehiclesService {
     };*/
   }
 
-
   async update(id: number, updateVehicleDto: UpdateVehicleDto) {
     // Validar que exista el vehiculo
     const vehicleExist = await this.findById(id);
@@ -180,7 +178,6 @@ export class VehiclesService {
     return await this.vehiclesRepository.save(updateVehicle);
   }
 
-
   async restore(id: number) {
     // Validar que exista el vehiculo
     const vehicleExist = await this.findById(id);
@@ -190,7 +187,6 @@ export class VehiclesService {
     vehicleExist.active = true;
     return this.vehiclesRepository.save(vehicleExist);
   }
-
 
   async remove(id: number) {
     // Validar que exista el vehiculo

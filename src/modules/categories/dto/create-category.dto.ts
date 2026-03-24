@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 import { Transform } from 'class-transformer';
-import { typeCategories } from '../../../shared/enums/types.services.enums';
+import { typeCategories } from '../../../shared/enums/types.categories.enums';
 
 export class CreateCategoryDto {
     @ApiProperty({

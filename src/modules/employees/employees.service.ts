@@ -19,7 +19,7 @@ export class EmployeesService {
   async create(createEmployeeDto: CreateEmployeeDto) {
     const isEmailAlreadyExists = await this.findEmployeeByEmail(createEmployeeDto.email);
     if (isEmailAlreadyExists) throw new ConflictException('Ya existe un empleado con ese email.');
-  
+
     const isCiAlreadyExists = await this.findEmployeeByCi(createEmployeeDto.ci);
     if (isCiAlreadyExists) throw new ConflictException('Ya existe un empleado con ese CI.');
 
@@ -33,13 +33,12 @@ export class EmployeesService {
     return await this.employeeRepository.save(newEmployee);
   }
 
-
   async findEmployees(paginationDto: PaginationDto) {
     const [employees, total] = await this.employeeRepository.findAndCount({
       where: [
-        {active: paginationDto.active, names: ILike(`%${paginationDto.param?.toUpperCase()}%`)},
-        {active: paginationDto.active, lastnames: ILike(`%${paginationDto.param?.toUpperCase()}%`)},
-        {active: paginationDto.active, ci: paginationDto.param},
+        { active: paginationDto.active, names: ILike(`%${paginationDto.param?.toUpperCase()}%`) },
+        { active: paginationDto.active, lastnames: ILike(`%${paginationDto.param?.toUpperCase()}%`) },
+        { active: paginationDto.active, ci: paginationDto.param },
       ],
       take: paginationDto.limit,
       skip: (paginationDto.page - 1) * paginationDto.limit,
@@ -74,7 +73,6 @@ export class EmployeesService {
     }
   }
 
-
   async update(id: number, updateEmployeeDto: UpdateEmployeeDto) {
     const isEmployeeExists = await this.findEmployeeById(id);
     if (!isEmployeeExists) throw new NotFoundException('No existe un empleado con el ID proporcionado');
@@ -83,26 +81,31 @@ export class EmployeesService {
     // Verificamos que la cedula  que se va a actualizar no exista
     if (updateEmployeeDto.ci) {
       const isCiAlreadyExists = await this.findEmployeeByCi(updateEmployeeDto.ci);
-      if (isCiAlreadyExists) throw new ConflictException('Ya existe un empleado con ese CI.');
+      if (isCiAlreadyExists && isCiAlreadyExists.employeeId !== id) {
+        throw new ConflictException('Ya existe un empleado con ese CI.');
+      }
     }
 
     // Verificamos que el email que se va a actualizar no exista
     if (updateEmployeeDto.email) {
       const isEmailAlreadyExists = await this.findEmployeeByEmail(updateEmployeeDto.email);
-      if (isEmailAlreadyExists) throw new ConflictException('Ya existe un empleado con ese email.');
+      if (isEmailAlreadyExists && isEmailAlreadyExists.employeeId !== id){
+        throw new ConflictException('Ya existe un empleado con ese email.');
+      } 
     }
 
     // Verificamos que el número de teléfono que se va a actualizar no exista
     if (updateEmployeeDto.numberPhone) {
       const isNumberPhoneAlreadyExists = await this.findEmployeeByNumberPhone(updateEmployeeDto.numberPhone);
-      if (isNumberPhoneAlreadyExists) throw new ConflictException('Ya existe un empleado con ese número de teléfono.');
+      if (isNumberPhoneAlreadyExists && isNumberPhoneAlreadyExists.employeeId !== id) {
+        throw new ConflictException('Ya existe un empleado con ese número de teléfono.');
+      }
     }
 
     // Actualizamos el empleado
     const updateEmployee = await this.employeeRepository.merge(isEmployeeExists, updateEmployeeDto);
     return await this.employeeRepository.save(updateEmployee);
   }
-
 
   async remove(id: number) {
     const employeeExists = await this.findEmployeeById(id);
@@ -114,7 +117,6 @@ export class EmployeesService {
     return await this.employeeRepository.save(employeeExists);
   }
 
-  
   async restore(id: number) {
     const employeeExists = await this.findEmployeeById(id);
     if (!employeeExists) throw new NotFoundException('No existe un empleado con el ID proporcionado');
@@ -122,7 +124,6 @@ export class EmployeesService {
 
     return await this.employeeRepository.update(id, { active: true, deletedAt: null });
   }
-
 
   async findEmployeeByCi(ci: string) {
     return await this.employeeRepository.findOne({
@@ -132,7 +133,6 @@ export class EmployeesService {
     });
   }
 
-
   async findEmployeeByEmail(email: string) {
     return await this.employeeRepository.findOne({
       where: { email },
@@ -141,7 +141,6 @@ export class EmployeesService {
     });
   }
 
-
   async findEmployeeByNumberPhone(numberPhone: string) {
     return await this.employeeRepository.findOne({
       where: { numberPhone },
@@ -149,7 +148,6 @@ export class EmployeesService {
       withDeleted: true,
     });
   }
-
 
   async findEmployeeById(id: number) {
     return await this.employeeRepository.findOne({

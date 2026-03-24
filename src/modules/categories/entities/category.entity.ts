@@ -5,7 +5,7 @@ import {
 } from 'typeorm';
 import { Product } from '../../products/entities/product.entity';
 import { Service } from '../../services/entities/service.entity';
-import { typeCategories } from '../../../shared/enums/types.services.enums';
+import { typeCategories } from '../../../shared/enums/types.categories.enums';
 
 @Entity('categories')
 @Unique(['name', 'type'])

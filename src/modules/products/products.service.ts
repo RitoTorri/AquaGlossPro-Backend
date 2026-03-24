@@ -5,7 +5,7 @@ import { Product } from './entities/product.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { CategoriesService } from '../categories/categories.service';
-import { typeCategories } from '../../shared/enums/types.services.enums';
+import { typeCategories } from '../../shared/enums/types.categories.enums';
 
 @Injectable()
 export class ProductsService {

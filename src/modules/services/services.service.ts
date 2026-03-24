@@ -5,7 +5,7 @@ import { Service } from './entities/service.entity';
 import { CategoriesService } from '../categories/categories.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
-import { typeCategories } from '../../shared/enums/types.services.enums';
+import { typeCategories } from '../../shared/enums/types.categories.enums';
 
 @Injectable()
 export class ServicesService {

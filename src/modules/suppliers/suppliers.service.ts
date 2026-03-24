@@ -27,7 +27,6 @@ export class SuppliersService {
     return await this.supplierRepository.save(newSupplier);
   }
 
-
   async remove(id: number) {
     const supplierExists = await this.findById(id);
     if (!supplierExists) throw new NotFoundException('No se encontro un proveedor con el ID proporcionado');
@@ -38,7 +37,6 @@ export class SuppliersService {
     return await this.supplierRepository.save(supplierExists);
   }
 
-
   async update(id: number, updateSupplierDto: UpdateSupplierDto) {
     // Buscamos por id para verfiicar que este activo y exista
     const supplierExists = await this.findById(id);
@@ -48,19 +46,25 @@ export class SuppliersService {
     // Verficamos que el email que se va a actualizar no exista
     if (updateSupplierDto.email) {
       const isEmailAlreadyRegistered = await this.findByEmail(updateSupplierDto.email);
-      if (isEmailAlreadyRegistered) throw new ConflictException('Ya existe un proveedor con ese email. Por favor, use otro email.');
+      if (isEmailAlreadyRegistered && isEmailAlreadyRegistered.supplierId !== id) {
+        throw new ConflictException('Ya existe un proveedor con ese email. Por favor, use otro email.');
+      }
     }
 
     // VErficamos que el numero de telefono que se va a actualizar no exista
     if (updateSupplierDto.numberPhone) {
       const isNumberPhoneAlreadyRegistered = await this.findByNumberPhone(updateSupplierDto.numberPhone);
-      if (isNumberPhoneAlreadyRegistered) throw new ConflictException('Ya existe un proveedor con ese numero de telefono. Por favor, use otro numero de telefono.');
+      if (isNumberPhoneAlreadyRegistered && isNumberPhoneAlreadyRegistered.supplierId !== id) {
+        throw new ConflictException('Ya existe un proveedor con ese numero de telefono. Por favor, use otro numero de telefono.');
+      }
     }
 
     // Verficamos que el cedula o rif que se va a actualizar no exista
     if (updateSupplierDto.ci) {
       const isCiAlreadyRegistered = await this.findByCi(updateSupplierDto.ci);
-      if (isCiAlreadyRegistered) throw new ConflictException('Ya existe un proveedor con ese cedula o rif. Por favor, use otro cedula o rif.');
+      if (isCiAlreadyRegistered && isCiAlreadyRegistered.supplierId !== id) {
+        throw new ConflictException('Ya existe un proveedor con ese cedula o rif. Por favor, use otro cedula o rif.');
+      }
     }
 
     // Actualizamos el proveedor
