@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm'; // Carga de la configuración de TypeORM
+import { APP_FILTER } from '@nestjs/core';
+
 import { TypeOrmConfigService } from './config/typeorm.config';
 import { ModulesModule } from './modules/modules/modules.module';
 import { UsersModule } from './modules/users/users.module';
@@ -19,6 +21,7 @@ import { PaymentsMethodsModule } from './modules/payments-methods/payments-metho
 import { TypeVehicleModule } from './modules/type-vehicle/type-vehicle.module';
 import { VehiclesModule } from './modules/vehicles/vehicles.module';
 import { CategoriesModule } from './modules/categories/categories.module';
+import { GeneralExceptionFilter } from './shared/filters/catch_exeptions.filters';
 
 @Module({
   imports: [
@@ -51,7 +54,7 @@ import { CategoriesModule } from './modules/categories/categories.module';
     SuppliersModule,
 
     EmployeesModule,
-    
+
     JobsModule,
 
     ProductsModule,
@@ -64,6 +67,12 @@ import { CategoriesModule } from './modules/categories/categories.module';
 
     CategoriesModule,
   ],
-  controllers: [PermissionsController]
+  controllers: [PermissionsController],
+  providers: [
+    {
+      provide: APP_FILTER,
+      useClass: GeneralExceptionFilter,
+    },
+  ],
 })
-export class AppModule { }
+export class AppModule {}

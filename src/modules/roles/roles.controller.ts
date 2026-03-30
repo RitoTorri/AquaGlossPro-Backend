@@ -1,47 +1,71 @@
-import { Controller, Get, Post, Body, Patch, Param, Res, Delete, ParseIntPipe } from '@nestjs/common';
-import type { Response } from 'express';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  ParseIntPipe,
+  HttpCode,
+  //UseGuards
+} from '@nestjs/common';
 import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
-import responses from '../../shared/utils/responses';
-import { ApiOperation } from '@nestjs/swagger';
+//import { VerifyTokenGuard } from '../../shared/guards/verify-token.guard';
+import Docs from './roles.swagger';
 
 @Controller('roles')
 export class RolesController {
-  constructor(private readonly rolesService: RolesService) { }
+  constructor(private readonly rolesService: RolesService) {}
 
-  @ApiOperation({summary: 'Crea un nuevo rol'})
+  @Docs.createRole()
+  //@UseGuards(VerifyTokenGuard)
   @Post()
-  async create(@Res() res: Response, @Body() createRoleDto: CreateRoleDto) {
+  @HttpCode(201)
+  async create(@Body() createRoleDto: CreateRoleDto) {
     const role = await this.rolesService.create(createRoleDto);
-    return responses.responseSuccessful(res, 201, 'Rol creado exitosamente', role);
+    return {
+      data: role,
+      message: 'Role creado exitosamente',
+    };
   }
 
-  @ApiOperation({summary: 'Lista de roles'})
+  @Docs.findAllRoles()
+  //@UseGuards(VerifyTokenGuard)
   @Get()
-  async findAll(@Res() res: Response) {
+  @HttpCode(200)
+  async findAll() {
     const roles = await this.rolesService.findAll();
-    return responses.responseSuccessful(res, 200, 'Roles obtenidos exitosamente', roles);
+    if (roles.length === 0) throw new Error('No hay roles registrados en el sistema');
+    return { message: 'Roles encontrados exitosamente', data: roles };
   }
 
-  @ApiOperation({summary: 'Actualiza un rol'})
+  @Docs.updateRole()
+  //@UseGuards(VerifyTokenGuard)
   @Patch(':id')
-  async update(@Res() res: Response, @Param('id', ParseIntPipe) id: string, @Body() updateRoleDto: UpdateRoleDto) {
+  @HttpCode(204)
+  async update(@Param('id', ParseIntPipe) id: string, @Body() updateRoleDto: UpdateRoleDto) {
     await this.rolesService.update(+id, updateRoleDto);
-    return responses.responseSuccessful(res, 204);
+    return;
   }
 
-  @ApiOperation({summary: 'Restaura un rol'})
+  @Docs.restoreRole()
+  //@UseGuards(VerifyTokenGuard)
   @Patch('restore/:id')
-  async restore(@Res() res: Response, @Param('id', ParseIntPipe) id: string) {
+  @HttpCode(204)
+  async restore(@Param('id', ParseIntPipe) id: string) {
     await this.rolesService.restore(+id);
-    return responses.responseSuccessful(res, 204);
+    return;
   }
 
-  @ApiOperation({summary: 'Elimina un rol'})
+  @Docs.deleteRole()
+  //@UseGuards(VerifyTokenGuard)
   @Delete(':id')
-  async remove(@Res() res: Response, @Param('id', ParseIntPipe) id: string) {
+  @HttpCode(204)
+  async remove(@Param('id', ParseIntPipe) id: string) {
     await this.rolesService.remove(+id);
-    return responses.responseSuccessful(res, 204);
+    return;
   }
 }

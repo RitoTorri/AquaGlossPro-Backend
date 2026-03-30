@@ -9,19 +9,24 @@ import { UpdateSupplierDto } from './dto/update-supplier.dto';
 export class SuppliersService {
   constructor(
     @InjectRepository(Supplier)
-    private readonly supplierRepository: Repository<Supplier>
-  ) { }
+    private readonly supplierRepository: Repository<Supplier>,
+  ) {}
 
   async create(createSupplierDto: CreateSupplierDto) {
     // Validar que en la Db no exista un provedor con el email, telfono o cedula/rif
     const isEmailAlreadyRegistered = await this.findByEmail(createSupplierDto.email);
-    if (isEmailAlreadyRegistered) throw new ConflictException('Ya existe un proveedor con ese email. Por favor, cambie el email');
+    if (isEmailAlreadyRegistered)
+      throw new ConflictException('Ya existe un proveedor con ese email. Por favor, cambie el email');
 
     const isNumberPhoneAlreadyRegistered = await this.findByNumberPhone(createSupplierDto.numberPhone);
-    if (isNumberPhoneAlreadyRegistered) throw new ConflictException('Ya existe un proveedor con ese numero de telefono. Por favor, cambie el numero de telefono');
+    if (isNumberPhoneAlreadyRegistered)
+      throw new ConflictException(
+        'Ya existe un proveedor con ese numero de telefono. Por favor, cambie el numero de telefono',
+      );
 
     const isCiAlreadyRegistered = await this.findByCi(createSupplierDto.ci);
-    if (isCiAlreadyRegistered) throw new ConflictException('Ya existe un proveedor con ese cedula o rif. Por favor, cambie el cedula o rif');
+    if (isCiAlreadyRegistered)
+      throw new ConflictException('Ya existe un proveedor con ese cedula o rif. Por favor, cambie el cedula o rif');
 
     const newSupplier = this.supplierRepository.create(createSupplierDto);
     return await this.supplierRepository.save(newSupplier);
@@ -30,7 +35,8 @@ export class SuppliersService {
   async remove(id: number) {
     const supplierExists = await this.findById(id);
     if (!supplierExists) throw new NotFoundException('No se encontro un proveedor con el ID proporcionado');
-    if (!supplierExists.active) throw new ConflictException('Proveedor está inactivo. No puede ser eliminado nuevamente');
+    if (!supplierExists.active)
+      throw new ConflictException('Proveedor está inactivo. No puede ser eliminado nuevamente');
 
     supplierExists.active = false;
     supplierExists.deletedAt = new Date();
@@ -55,7 +61,9 @@ export class SuppliersService {
     if (updateSupplierDto.numberPhone) {
       const isNumberPhoneAlreadyRegistered = await this.findByNumberPhone(updateSupplierDto.numberPhone);
       if (isNumberPhoneAlreadyRegistered && isNumberPhoneAlreadyRegistered.supplierId !== id) {
-        throw new ConflictException('Ya existe un proveedor con ese numero de telefono. Por favor, use otro numero de telefono.');
+        throw new ConflictException(
+          'Ya existe un proveedor con ese numero de telefono. Por favor, use otro numero de telefono.',
+        );
       }
     }
 
@@ -72,7 +80,6 @@ export class SuppliersService {
     return await this.supplierRepository.save(updateSupplier);
   }
 
-
   async restore(id: number) {
     const supplierExists = await this.findById(id);
     if (!supplierExists) throw new NotFoundException('No se encontro un proveedor con el ID proporcionado');
@@ -80,7 +87,6 @@ export class SuppliersService {
 
     return await this.supplierRepository.update(id, { active: true, deletedAt: null });
   }
-
 
   async findAll(active: boolean, page: number, limit: number, param: string | '') {
     const [suppliers, total] = await this.supplierRepository.findAndCount({
@@ -117,7 +123,6 @@ export class SuppliersService {
       },
     };
   }
-
 
   // Ayudadores de busqueda
   async findById(id: number) {

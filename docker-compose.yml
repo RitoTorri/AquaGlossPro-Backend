@@ -6,6 +6,12 @@ services:
       - "${POSTGRES_PORT}:${POSTGRES_PORT}"
     env_file:
       - .env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     volumes:
       - postgres_data:/var/lib/postgresql/data
   api-aqua-gloss-pro:
@@ -16,6 +22,7 @@ services:
     env_file:
       - .env
     depends_on:
-      - db-aqua-gloss-pro
+      db-aqua-gloss-pro:
+        condition: service_healthy
 volumes:
   postgres_data:

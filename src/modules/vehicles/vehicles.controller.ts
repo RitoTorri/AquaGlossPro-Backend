@@ -1,55 +1,64 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Res, ParseIntPipe, Query } from '@nestjs/common';
-import type { Response } from 'express';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  ParseIntPipe,
+  Query,
+  NotFoundException,
+  HttpCode,
+} from '@nestjs/common';
 import { VehiclesService } from './vehicles.service';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto';
 import { PaginationDto } from '../../shared/dto/pagination.dto';
 import Docs from './vehicles.swagger';
-import responses from '../../shared/utils/responses';
-
 
 @Controller('vehicles')
 export class VehiclesController {
-  constructor(private readonly vehiclesService: VehiclesService) { }
+  constructor(private readonly vehiclesService: VehiclesService) {}
 
   @Docs.ApiCreatedVehicleDoc()
   @Post()
-  async create(@Res() res: Response, @Body() createVehicleDto: CreateVehicleDto) {
+  @HttpCode(201)
+  async create(@Body() createVehicleDto: CreateVehicleDto) {
     const vehicle = await this.vehiclesService.create(createVehicleDto);
-    return responses.responseSuccessful(res, 201, "Vehiculo creado exitosamente.", vehicle);
+    return { message: 'Vehiculo creado exitosamente.', data: vehicle };
   }
 
   @Docs.ApiFindVehiclesDoc()
   @Get()
-  async findAll(@Res() res: Response, @Query() paginationDto: PaginationDto) {
+  @HttpCode(200)
+  async findAll(@Query() paginationDto: PaginationDto) {
     const result = await this.vehiclesService.findAll(paginationDto);
-    return result.meta.totalItems > 0
-      ? responses.responseSuccessful(res, 200, "Listado de vehiculos exitoso.", result)
-      : responses.responseSuccessful(res, 404, "No hay vehiculos disponibles.");
+    if (result.meta.totalItems === 0) throw new NotFoundException('No hay vehiculos disponibles');
+    return { message: 'Listado de vehiculos exitoso.', data: result };
   }
 
   @Docs.ApiUpdateVehicleDoc()
   @Patch(':id')
-  async update(
-    @Res() res: Response,
-    @Param('id') id: string,
-    @Body() updateVehicleDto: UpdateVehicleDto
-  ) {
+  @HttpCode(204)
+  async update(@Param('id') id: string, @Body() updateVehicleDto: UpdateVehicleDto) {
     await this.vehiclesService.update(+id, updateVehicleDto);
-    return responses.responseSuccessful(res, 204);
+    return;
   }
 
   @Docs.ApiRestoreVehicleDoc()
   @Patch('restore/:id')
-  async restore(@Res() res: Response, @Param('id', ParseIntPipe) id: string) {
+  @HttpCode(204)
+  async restore(@Param('id', ParseIntPipe) id: string) {
     await this.vehiclesService.restore(+id);
-    return responses.responseSuccessful(res, 204);
+    return;
   }
 
   @Docs.ApiRemoveVehicleDoc()
   @Delete(':id')
-  async remove(@Res() res: Response, @Param('id', ParseIntPipe) id: string) {
+  @HttpCode(204)
+  async remove(@Param('id', ParseIntPipe) id: string) {
     await this.vehiclesService.remove(+id);
-    return responses.responseSuccessful(res, 204);
+    return;
   }
 }

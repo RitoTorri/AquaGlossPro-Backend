@@ -1,49 +1,71 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Res, ParseBoolPipe, ParseIntPipe, Query } from '@nestjs/common';
-import type { Response } from 'express';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  ParseIntPipe,
+  Query,
+  HttpCode,
+  // UseGuards,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import responses from '../../shared/utils/responses';
 import { PaginationDto } from '../../shared/dto/pagination.dto';
-import { ApiOperation } from '@nestjs/swagger';
+// import { VerifyTokenGuard } from '../../shared/guards/verify-token.guard';
+import Docs from './users.swagger';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) { }
+  constructor(private readonly usersService: UsersService) {}
 
-  @ApiOperation({ summary: 'Crear un nuevo usuario' })
+  @Docs.createUser()
+  //@UseGuards(VerifyTokenGuard)
   @Post()
-  async create(@Res() res: Response, @Body() createUserDto: CreateUserDto) {
+  @HttpCode(201)
+  async create(@Body() createUserDto: CreateUserDto) {
     const user = await this.usersService.create(createUserDto);
-    return responses.responseSuccessful(res, 201, 'Usuario creado exitosamente', user);
+    return { message: 'Usuario creado exitosamente', data: user };
   }
 
-  @ApiOperation({ summary: 'Obtener todos los usuarios o filtrar por nombre' })
+  @Docs.findAllUsers()
+  //@UseGuards(VerifyTokenGuard)
   @Get()
-  async findAll(@Res() res: Response, @Query() paginationDto: PaginationDto) {
+  @HttpCode(200)
+  async findAll(@Query() paginationDto: PaginationDto) {
     const { active, page = 1, limit = 10, param = '' } = paginationDto;
     const users = await this.usersService.findAll(active, page, limit, param);
-    return responses.responseSuccessful(res, 200, 'Usuarios obtenidos exitosamente', users);
+    if (users.data.length === 0) throw new Error('No hay usuarios registrados');
+    return { message: 'Listado de usuarios exitoso', data: users };
   }
 
-  @ApiOperation({ summary: 'Actualizar un usuario' })
+  @Docs.updateUser()
+  //@UseGuards(VerifyTokenGuard)
   @Patch(':id')
-  async update(@Res() res: Response, @Param('id', ParseIntPipe) id: string, @Body() updateUserDto: UpdateUserDto) {
+  @HttpCode(204)
+  async update(@Param('id', ParseIntPipe) id: string, @Body() updateUserDto: UpdateUserDto) {
     await this.usersService.update(+id, updateUserDto);
-    return responses.responseSuccessful(res, 204);
-  } 
-
-  @ApiOperation({ summary: 'Restaurar un usuario' })
-  @Patch('restore/:id')
-  async restore(@Res() res: Response, @Param('id', ParseIntPipe) id: string) {
-    await this.usersService.restore(+id);
-    return responses.responseSuccessful(res, 204);
+    return;
   }
 
-  @ApiOperation({ summary: 'Eliminar un usuario' })
+  @Docs.restoreUser()
+  //@UseGuards(VerifyTokenGuard)
+  @Patch('restore/:id')
+  @HttpCode(204)
+  async restore(@Param('id', ParseIntPipe) id: string) {
+    await this.usersService.restore(+id);
+    return;
+  }
+
+  @Docs.deleteUser()
+  //@UseGuards(VerifyTokenGuard)
   @Delete(':id')
-  async remove(@Res() res: Response, @Param('id', ParseIntPipe) id: string) {
+  @HttpCode(204)
+  async remove(@Param('id', ParseIntPipe) id: string) {
     await this.usersService.remove(+id);
-    return responses.responseSuccessful(res, 204);
+    return;
   }
 }

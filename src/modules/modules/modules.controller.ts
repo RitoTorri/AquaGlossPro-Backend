@@ -1,49 +1,63 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Res, ParseBoolPipe, ParseIntPipe } from '@nestjs/common';
-import { type Response } from 'express';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  ParseBoolPipe,
+  ParseIntPipe,
+  NotFoundException,
+  HttpCode,
+} from '@nestjs/common';
 import { ModulesService } from './modules.service';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
-import { ApiOperation } from '@nestjs/swagger';
-import responses from '../../shared/utils/responses';
+import Docs from './modules.swagger';
 
 @Controller('modules')
 export class ModulesController {
-  constructor(private readonly modulesService: ModulesService) { }
+  constructor(private readonly modulesService: ModulesService) {}
 
-  @ApiOperation({summary: 'Crea un nuevo módulo'})
+  @Docs.createdModule()
+  @HttpCode(201)
   @Post()
-  async create(@Res() res: Response, @Body() createModuleDto: CreateModuleDto) {
+  async create(@Body() createModuleDto: CreateModuleDto) {
     const newModule = await this.modulesService.create(createModuleDto);
-    return responses.responseSuccessful(res, 201, 'Módulo creado exitosamente', newModule);
+    return { message: 'Módulo creado exitosamente', data: newModule };
   }
 
-  @ApiOperation({summary: 'Lista de módulos'})
+  @Docs.findAllModules()
+  @HttpCode(200)
   @Get(':active')
-  async findAll(@Res() res: Response, @Param('active', ParseBoolPipe) active: boolean) {
+  async findAll(@Param('active', ParseBoolPipe) active: boolean) {
     const modules = await this.modulesService.findAll(active);
-    return modules.length > 0
-      ? responses.responseSuccessful(res, 200, 'Módulos obtenidos exitosamente', modules)
-      : responses.responsefailed(res, 404, 'No hay modulos registrados');
+    if (modules.length > 0) throw new NotFoundException('No se encontraron módulos');
+    return { message: 'Módulos obtenidos exitosamente', data: modules };
   }
 
-  @ApiOperation({summary: 'Actualiza un módulo'})
+  @Docs.updateModule()
+  @HttpCode(204)
   @Patch(':id')
-  async update(@Res() res: Response, @Param('id') id: string, @Body() updateModuleDto: UpdateModuleDto) {
+  async update(@Param('id') id: string, @Body() updateModuleDto: UpdateModuleDto) {
     await this.modulesService.update(+id, updateModuleDto);
-    return responses.responseSuccessful(res, 204);
+    return;
   }
 
-  @ApiOperation({summary: 'Restaura un módulo'})
+  @Docs.restoreModule()
+  @HttpCode(204)
   @Patch('restore/:id')
-  async restore(@Res() res: Response, @Param('id', ParseIntPipe) id: string) {
+  async restore(@Param('id', ParseIntPipe) id: string) {
     await this.modulesService.restore(+id);
-    return responses.responseSuccessful(res, 204);
+    return;
   }
 
-  @ApiOperation({summary: 'Elimina un módulo'})
+  @Docs.deleteModule()
+  @HttpCode(204)
   @Delete(':id')
-  async remove(@Res() res: Response, @Param('id', ParseIntPipe) id: string) {
+  async remove(@Param('id', ParseIntPipe) id: string) {
     await this.modulesService.remove(+id);
-    return responses.responseSuccessful(res, 204);
+    return;
   }
 }

@@ -1,74 +1,89 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Res, ParseIntPipe, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Res,
+  ParseIntPipe,
+  Query,
+  InternalServerErrorException,
+  HttpCode,
+} from '@nestjs/common';
 import { PaymentsMethodsService } from './payments-methods.service';
 import { CreatePaymentMethodDto } from './dto/create-payment-method.dto';
 import { UpdatePaymentMethodDto } from './dto/update-payment-method.dto';
-import { PaginationDto } from '../../shared/dto/pagination.dto';  // ← RUTA CORREGIDA (../../)
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { Response } from 'express';
-import responses from '../../shared/utils/responses';  // ← RUTA CORREGIDA (../../)
+import { PaginationDto } from '../../shared/dto/pagination.dto'; // ← RUTA CORREGIDA (../../)
+import paymentsMethodsSwagger from './payments-methods.swagger';
 
-@ApiTags('payments-methods')
 @Controller('payments-methods')
 export class PaymentsMethodsController {
   constructor(private readonly paymentsMethodsService: PaymentsMethodsService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Crear un nuevo método de pago' })
-  async create(@Res() res: Response, @Body() createPaymentMethodDto: CreatePaymentMethodDto) {
+  @paymentsMethodsSwagger.createPaymentMethod()
+  @HttpCode(201)
+  async create(@Body() createPaymentMethodDto: CreatePaymentMethodDto) {
     try {
       const paymentMethod = await this.paymentsMethodsService.create(createPaymentMethodDto);
-      return responses.responseSuccessful(res, 201, 'Método de pago creado exitosamente', paymentMethod);
+      return { message: 'Método de pago creado exitosamente', data: paymentMethod };
     } catch (error) {
-      return responses.responsefailed(res, error.status || 500, error.message);
+      throw new InternalServerErrorException(error.message);
     }
   }
 
   @Get()
-  @ApiOperation({ summary: 'Listar todos los métodos de pago' })
-  async findAll(@Res() res: Response, @Query() paginationDto: PaginationDto) {
+  @paymentsMethodsSwagger.findPaymentsMethods()
+  @HttpCode(200)
+  async findAll(@Query() paginationDto: PaginationDto) {
     try {
       const { active = true, page = 1, limit = 10, param = '' } = paginationDto;
       const paymentMethods = await this.paymentsMethodsService.findAll(active, page, limit, param);
-      return responses.responseSuccessful(res, 200, 'Métodos de pago obtenidos exitosamente', paymentMethods);
+      return { message: 'Métodos de pago obtenidos exitosamente', data: paymentMethods };
     } catch (error) {
-      return responses.responsefailed(res, error.status || 500, error.message);
+      throw new InternalServerErrorException(error.message);
     }
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Actualizar un método de pago' })
+  @paymentsMethodsSwagger.updatePaymentMethod()
+  @HttpCode(204)
   async update(
     @Res() res: Response,
     @Param('id', ParseIntPipe) id: string,
-    @Body() updatePaymentMethodDto: UpdatePaymentMethodDto
+    @Body() updatePaymentMethodDto: UpdatePaymentMethodDto,
   ) {
     try {
       await this.paymentsMethodsService.update(+id, updatePaymentMethodDto);
-      return responses.responseSuccessful(res, 204);
+      return;
     } catch (error) {
-      return responses.responsefailed(res, error.status || 500, error.message);
+      throw new InternalServerErrorException(error.message);
     }
   }
 
   @Patch('restore/:id')
-  @ApiOperation({ summary: 'Restaurar un método de pago' })
-  async restore(@Res() res: Response, @Param('id', ParseIntPipe) id: string) {
+  @paymentsMethodsSwagger.restorePaymentMethod()
+  @HttpCode(200)
+  async restore(@Param('id', ParseIntPipe) id: string) {
     try {
       await this.paymentsMethodsService.restore(+id);
-      return responses.responseSuccessful(res, 204);
+      return;
     } catch (error) {
-      return responses.responsefailed(res, error.status || 500, error.message);
+      throw new InternalServerErrorException(error.message);
     }
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar un método de pago' })
-  async remove(@Res() res: Response, @Param('id', ParseIntPipe) id: string) {
+  @paymentsMethodsSwagger.removePaymentMethod()
+  @HttpCode(204)
+  async remove(@Param('id', ParseIntPipe) id: string) {
     try {
       await this.paymentsMethodsService.remove(+id);
-      return responses.responseSuccessful(res, 204);
+      return;
     } catch (error) {
-      return responses.responsefailed(res, error.status || 500, error.message);
+      throw new InternalServerErrorException(error.message);
     }
   }
 }

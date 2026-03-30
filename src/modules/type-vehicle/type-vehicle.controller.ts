@@ -1,74 +1,78 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Res, ParseIntPipe, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  ParseIntPipe,
+  Query,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { TypeVehicleService } from './type-vehicle.service';
 import { CreateTypeVehicleDto } from './dto/create-type-vehicle.dto';
 import { UpdateTypeVehicleDto } from './dto/update-type-vehicle.dto';
-import { PaginationDto } from '../../shared/dto/pagination.dto';  // ← RUTA CORREGIDA (../../)
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { Response } from 'express';
-import responses from '../../shared/utils/responses';  // ← RUTA CORREGIDA (../../)
+import { PaginationDto } from '../../shared/dto/pagination.dto'; // ← RUTA CORREGIDA (../../)
 
-@ApiTags('type-vehicle')
 @Controller('type-vehicle')
 export class TypeVehicleController {
   constructor(private readonly typeVehicleService: TypeVehicleService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Crear un nuevo tipo de vehículo' })
-  async create(@Res() res: Response, @Body() createTypeVehicleDto: CreateTypeVehicleDto) {
+  async create(@Body() createTypeVehicleDto: CreateTypeVehicleDto) {
     try {
       const typeVehicle = await this.typeVehicleService.create(createTypeVehicleDto);
-      return responses.responseSuccessful(res, 201, 'Tipo de vehículo creado exitosamente', typeVehicle);
+      return { message: 'Tipo de vehículo creado exitosamente', data: typeVehicle };
     } catch (error) {
-      return responses.responsefailed(res, error.status || 500, error.message);
+      throw new InternalServerErrorException(error.message);
     }
   }
 
   @Get()
-  @ApiOperation({ summary: 'Listar todos los tipos de vehículos' })
-  async findAll(@Res() res: Response, @Query() paginationDto: PaginationDto) {
+  async findAll(@Query() paginationDto: PaginationDto) {
     try {
       const { active = true, page = 1, limit = 10, param = '' } = paginationDto;
       const typeVehicles = await this.typeVehicleService.findAll(active, page, limit, param);
-      return responses.responseSuccessful(res, 200, 'Tipos de vehículos obtenidos exitosamente', typeVehicles);
+
+      if (typeVehicles.data.length === 0) {
+        throw new NotFoundException('No se encontraron tipos de vehículos');
+      }
+
+      return { message: 'Tipos de vehículos obtenidos exitosamente', data: typeVehicles };
     } catch (error) {
-      return responses.responsefailed(res, error.status || 500, error.message);
+      throw new InternalServerErrorException(error.message);
     }
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Actualizar un tipo de vehículo' })
-  async update(
-    @Res() res: Response,
-    @Param('id', ParseIntPipe) id: string,
-    @Body() updateTypeVehicleDto: UpdateTypeVehicleDto
-  ) {
+  async update(@Param('id', ParseIntPipe) id: string, @Body() updateTypeVehicleDto: UpdateTypeVehicleDto) {
     try {
       await this.typeVehicleService.update(+id, updateTypeVehicleDto);
-      return responses.responseSuccessful(res, 204);
+      return;
     } catch (error) {
-      return responses.responsefailed(res, error.status || 500, error.message);
+      throw new InternalServerErrorException(error.message);
     }
   }
 
   @Patch('restore/:id')
-  @ApiOperation({ summary: 'Restaurar un tipo de vehículo' })
-  async restore(@Res() res: Response, @Param('id', ParseIntPipe) id: string) {
+  async restore(@Param('id', ParseIntPipe) id: string) {
     try {
       await this.typeVehicleService.restore(+id);
-      return responses.responseSuccessful(res, 204);
+      return;
     } catch (error) {
-      return responses.responsefailed(res, error.status || 500, error.message);
+      throw new InternalServerErrorException(error.message);
     }
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar un tipo de vehículo' })
-  async remove(@Res() res: Response, @Param('id', ParseIntPipe) id: string) {
+  async remove(@Param('id', ParseIntPipe) id: string) {
     try {
       await this.typeVehicleService.remove(+id);
-      return responses.responseSuccessful(res, 204);
+      return;
     } catch (error) {
-      return responses.responsefailed(res, error.status || 500, error.message);
+      throw new InternalServerErrorException(error.message);
     }
   }
 }

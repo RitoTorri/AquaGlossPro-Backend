@@ -10,8 +10,8 @@ import { Repository } from 'typeorm';
 export class ClientsService {
   constructor(
     @InjectRepository(Client)
-    private readonly clientsRepository: Repository<Client>
-  ) { }
+    private readonly clientsRepository: Repository<Client>,
+  ) {}
 
   async create(createClientDto: CreateClientDto) {
     // Validamos que la cedula no la tenga otro cliente
@@ -104,7 +104,9 @@ export class ClientsService {
         select: ['clientId', 'ci', 'names', 'lastnames', 'numberPhone', 'active'],
         withDeleted: true,
       });
-    } catch (error) { throw error; }
+    } catch (error) {
+      throw error;
+    }
   }
 
   async findByCi(ci: string) {
@@ -114,7 +116,9 @@ export class ClientsService {
         select: ['clientId', 'ci', 'names', 'lastnames', 'numberPhone', 'active'],
         withDeleted: true,
       });
-    } catch (error) { throw error; }
+    } catch (error) {
+      throw error;
+    }
   }
 
   async findByNumberPhone(numberPhone: string) {
@@ -124,6 +128,8 @@ export class ClientsService {
         select: ['clientId', 'ci', 'names', 'lastnames', 'numberPhone', 'active'],
         withDeleted: true,
       });
-    } catch (error) { throw error; }
+    } catch (error) {
+      throw error;
+    }
   }
 }

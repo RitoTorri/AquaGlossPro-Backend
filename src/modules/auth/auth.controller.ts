@@ -1,19 +1,18 @@
-import { Controller, Post, Body, Res } from '@nestjs/common';
+import { Controller, Post, Body, Res, HttpCode } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login';
 import type { Response } from 'express';
-import responses from '../../shared/utils/responses';
-import { ApiOperation } from '@nestjs/swagger';
-
+import { ApiAuth } from './auth.swagger';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
-  @ApiOperation({summary: 'Autenticación de usuario'})
+  @ApiAuth()
+  @HttpCode(200)
   @Post('login')
   async login(@Res() res: Response, @Body() loginDto: LoginDto) {
     const userLogin = await this.authService.login(loginDto);
-    return responses.responseSuccessful(res, 200, "Usuario logueado de manera exitosa", userLogin);
+    return { message: 'Usuario logueado de manera exitosa', data: userLogin };
   }
 }
