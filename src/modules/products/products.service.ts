@@ -48,6 +48,7 @@ export class ProductsService {
           unitCostLiter: true,
           currentStock: true,
           minStock: true,
+          unitType: true,
           active: true,
           createdAt: true,
           category: { categoryId: true, name: true, type: true, active: true },
