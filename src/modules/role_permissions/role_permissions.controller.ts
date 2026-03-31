@@ -1,48 +1,76 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Res, Query, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  ParseIntPipe,
+  HttpCode,
+  // UseGuards,
+} from '@nestjs/common';
 import { RolePermissionsService } from './role_permissions.service';
 import { CreateRolePermissionDto } from './dto/create-role_permission.dto';
 import { UpdateRolePermissionDto } from './dto/update-role_permission.dto';
 import { PaginationDto } from '../../shared/dto/pagination.dto';
-import type { Response } from 'express';
-import responses from '../../shared/utils/responses';
-import { ApiOperation } from '@nestjs/swagger';
+// import { VerifyTokenGuard } from '../../shared/guards/verify-token.guard';
+import Docs from './role_permissions.swagger';
 
 @Controller('role/permissions')
 export class RolePermissionsController {
-  constructor(private readonly rolePermissionsService: RolePermissionsService) { }
+  constructor(private readonly rolePermissionsService: RolePermissionsService) {}
 
-  @ApiOperation({summary: 'Crea un nuevo permiso para un rol'})
+  @Docs.createRolePermission()
+  //@UseGuards(VerifyTokenGuard)
   @Post()
-  async create(@Res() res: Response, @Body() createRolePermissionDto: CreateRolePermissionDto) {
+  @HttpCode(201)
+  async create(@Body() createRolePermissionDto: CreateRolePermissionDto) {
     const rolePermission = await this.rolePermissionsService.create(createRolePermissionDto);
-    return responses.responseSuccessful(res, 201, 'Permiso de rol creado exitosamente', rolePermission);
+    return {
+      message: 'Permission for role created successfully',
+      data: rolePermission,
+    };
   }
 
-  @ApiOperation({summary: 'Lista de permisos de roles'})
+  @Docs.findAllRolePermissions()
+  //@UseGuards(VerifyTokenGuard)
   @Get()
-  async findAll(@Res() res: Response, @Query() paginationDto: PaginationDto) {
+  @HttpCode(200)
+  async findAll(@Query() paginationDto: PaginationDto) {
     const rolesPermissions = await this.rolePermissionsService.findAll(paginationDto);
-    return responses.responseSuccessful(res, 200, 'Permisos de roles obtenidos exitosamente', rolesPermissions);
+    if (rolesPermissions.data.length === 0) throw new Error('No permissions found');
+    return {
+      message: 'Roles permissions found successfully',
+      data: rolesPermissions,
+    };
   }
 
-  @ApiOperation({summary: 'Actualiza un permiso de rol'})
+  @Docs.updateRolePermission()
+  //@UseGuards(VerifyTokenGuard)
   @Patch(':id')
-  async update(@Res() res: Response, @Param('id', ParseIntPipe) id: string, @Body() updateRolePermissionDto: UpdateRolePermissionDto) {
+  @HttpCode(204)
+  async update(@Param('id', ParseIntPipe) id: string, @Body() updateRolePermissionDto: UpdateRolePermissionDto) {
     await this.rolePermissionsService.update(+id, updateRolePermissionDto);
-    return responses.responseSuccessful(res, 204);
+    return;
   }
 
-  @ApiOperation({summary: 'Reasignar un permiso de rol'})
+  @Docs.restoreRolePermission()
+  //@UseGuards(VerifyTokenGuard)
   @Patch('restore/:id')
-  async restore(@Res() res: Response, @Param('id', ParseIntPipe) id: string) {
+  @HttpCode(204)
+  async restore(@Param('id', ParseIntPipe) id: string) {
     await this.rolePermissionsService.restore(+id);
-    return responses.responseSuccessful(res, 204);
+    return;
   }
 
-  @ApiOperation({summary: 'Revocar un permiso de rol'})
+  @Docs.removeRolePermission()
+  //@UseGuards(VerifyTokenGuard)
   @Delete(':id')
-  async remove(@Res() res: Response, @Param('id', ParseIntPipe) id: string) {
+  @HttpCode(204)
+  async remove(@Param('id', ParseIntPipe) id: string) {
     await this.rolePermissionsService.remove(+id);
-    return responses.responseSuccessful(res, 204);
+    return;
   }
 }

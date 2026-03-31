@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm'; // Carga de la configuración de TypeORM
+import { APP_FILTER } from '@nestjs/core';
+
 import { TypeOrmConfigService } from './config/typeorm.config';
 import { ModulesModule } from './modules/modules/modules.module';
 import { UsersModule } from './modules/users/users.module';
@@ -17,10 +19,9 @@ import { JobsModule } from './modules/jobs/jobs.module';
 import { ProductsModule } from './modules/products/products.module';
 import { PaymentsMethodsModule } from './modules/payments-methods/payments-methods.module';
 import { TypeVehicleModule } from './modules/type-vehicle/type-vehicle.module';
-import { CombosModule } from './modules/combos/combos.module';
-import { ServicesTypeVehicleModule } from './modules/services-type-vehicle/services-type-vehicle.module';
-import { CommissionsModule } from './modules/commissions/commissions.module';
-import { CombosServicesModule } from './modules/combos-services/combos-services.module';
+import { VehiclesModule } from './modules/vehicles/vehicles.module';
+import { CategoriesModule } from './modules/categories/categories.module';
+import { GeneralExceptionFilter } from './shared/filters/catch_exeptions.filters';
 
 @Module({
   imports: [
@@ -53,7 +54,7 @@ import { CombosServicesModule } from './modules/combos-services/combos-services.
     SuppliersModule,
 
     EmployeesModule,
-    
+
     JobsModule,
 
     ProductsModule,
@@ -62,15 +63,16 @@ import { CombosServicesModule } from './modules/combos-services/combos-services.
 
     TypeVehicleModule,
 
-    CombosModule,
+    VehiclesModule,
 
-    ServicesTypeVehicleModule,
-
-    CommissionsModule,
-
-    CombosServicesModule,
-    
+    CategoriesModule,
   ],
-  controllers: [PermissionsController]
+  controllers: [PermissionsController],
+  providers: [
+    {
+      provide: APP_FILTER,
+      useClass: GeneralExceptionFilter,
+    },
+  ],
 })
-export class AppModule { }
+export class AppModule {}

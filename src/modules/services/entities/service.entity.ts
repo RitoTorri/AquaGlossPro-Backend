@@ -1,15 +1,18 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, OneToMany } from 'typeorm';
-import { ServicesTypeVehicle } from '../../services-type-vehicle/entities/services-type-vehicle.entity';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import { Category } from '../../categories/entities/category.entity';
 
 @Entity('services')
 export class Service {
     @PrimaryGeneratedColumn()
     serviceId: number;
 
-    @Column({ length: 40, unique: true })
+    @Column()
+    categoryId: number;
+
+    @Column({ nullable: false, length: 40, unique: true })
     name: string;
 
-    @Column({ type: 'decimal', precision: 5, scale: 2, default: 0 })
+    @Column({ nullable: false, default: 0 })
     comissionPercentage: number;
 
     @Column({ default: true })
@@ -18,12 +21,13 @@ export class Service {
     @CreateDateColumn({ type: 'timestamptz' })
     createdAt: Date;
 
-    @UpdateDateColumn({ type: 'timestamptz', nullable: true })
-    updatedAt: Date | null;
+    @UpdateDateColumn({ type: 'timestamptz', default: null })
+    updatedAt: Date;
 
-    @DeleteDateColumn({ type: 'timestamptz', nullable: true })
+    @DeleteDateColumn({ type: 'timestamptz', default: null })
     deletedAt: Date | null;
 
-    @OneToMany(() => ServicesTypeVehicle, (stv) => stv.service)
-    servicesTypeVehicle: ServicesTypeVehicle[];
+    @ManyToOne(() => Category, (category) => category.services)
+    @JoinColumn({ name: 'categoryId', referencedColumnName: 'categoryId', foreignKeyConstraintName: 'fk_service_category' })
+    category: Category;
 }

@@ -1,26 +1,25 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Request } from 'express';
-import { verifyToken } from '../../shared/utils/tokens.utils';
+import { verifyToken } from '../utils/tokens.utils';
 
 @Injectable()
-export class VerifyRefreshTokenGuard implements CanActivate {
+export class VerifyTokenGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
     const token = this.extractTokenFromHeader(request);
+    console.log(token);
     
     if (!token) throw new UnauthorizedException('Token no proporcionado');
 
     try {
       // Ahora sí funciona el await correctamente
-      const payload = await verifyToken(token, process.env.TOKEN_ACCESS_REFRESH || 'refresh_secret');
+      const payload = await verifyToken(token, process.env.TOKEN_ACCESS || 'refresh_secret');
+      request['user'] = { id_user: payload.userId, id_role: payload.roleId };
+      // console.log(request['user']);
       
-      // Guardamos el payload Y el token crudo para usarlo después
-      request['token-refresh'] = payload; 
-      request['raw-refresh-token'] = token; // Guardamos el string original por si acaso
-      
-    } catch (error) {
+    } catch (error : any) {
       if (error.name === 'JsonWebTokenError') {
-        throw new UnauthorizedException('Token inválido');
+        throw new UnauthorizedException('Token con clave incorrecta');
       }
       if (error.name === 'TokenExpiredError') {
         // Importante: Si expira en el REFRESH, lanzamos 401 para que el front mande al login
@@ -33,6 +32,6 @@ export class VerifyRefreshTokenGuard implements CanActivate {
 
   private extractTokenFromHeader(request: Request): string | undefined {
     const [type, token] = request.headers.authorization?.split(' ') ?? [];
-    return type === 'Bearer' ? token : undefined;
+    return type === 'Bearer' ? token.trim() : undefined;
   }
 }

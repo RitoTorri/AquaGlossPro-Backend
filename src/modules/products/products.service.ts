@@ -4,13 +4,16 @@ import { Repository, ILike } from 'typeorm';
 import { Product } from './entities/product.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { CategoriesService } from '../categories/categories.service';
+import { typeCategories } from '../../shared/enums/types.categories.enums';
 
 @Injectable()
 export class ProductsService {
   constructor(
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
-  ) {}
+    private readonly categoriesService: CategoriesService,
+  ) { }
 
   async create(createProductDto: CreateProductDto) {
     // Validar que el nombre no exista
@@ -19,10 +22,11 @@ export class ProductsService {
       throw new ConflictException('Ya existe un producto con ese nombre');
     }
 
-    // Validar que minStock sea menor que maxStock
-    if (createProductDto.minStock >= createProductDto.maxStock) {
-      throw new ConflictException('El stock mínimo debe ser menor que el stock máximo');
-    }
+    // Validar que exista la categoria
+    const isCategoryExist = await this.categoriesService.findById(createProductDto.categoryId);
+    if (!isCategoryExist) throw new NotFoundException('La categoría no existe. Intente con otra.');
+    if (!isCategoryExist.active) throw new ConflictException('La categoría no está activa. No puede ser asignada a este producto');
+    if (isCategoryExist.type !== typeCategories.PRODUCTS) throw new ConflictException('La categoría seleccionada no es una de tipo productos');
 
     const newProduct = this.productsRepository.create(createProductDto);
     return await this.productsRepository.save(newProduct);
@@ -30,7 +34,7 @@ export class ProductsService {
 
   async findAll(active: boolean, page: number, limit: number, param: string) {
     try {
-      const where = param 
+      const where = param
         ? { active, name: ILike(`%${param.toUpperCase()}%`) }
         : { active };
 
@@ -44,11 +48,13 @@ export class ProductsService {
           unitCostLiter: true,
           currentStock: true,
           minStock: true,
-          maxStock: true,
+          unitType: true,
           active: true,
           createdAt: true,
+          category: { categoryId: true, name: true, type: true, active: true },
         },
         order: { productId: 'ASC' },
+        relations: ['category'],
         withDeleted: true,
       });
 
@@ -83,12 +89,11 @@ export class ProductsService {
       }
     }
 
-    // Validar minStock y maxStock si vienen en la actualización
-    const minStock = updateProductDto.minStock ?? productExists.minStock;
-    const maxStock = updateProductDto.maxStock ?? productExists.maxStock;
-    
-    if (minStock >= maxStock) {
-      throw new ConflictException('El stock mínimo debe ser menor que el stock máximo');
+    if (updateProductDto.categoryId) {
+      const isCategoryExist = await this.categoriesService.findById(updateProductDto.categoryId);
+      if (!isCategoryExist) throw new NotFoundException('La categoría no existe. Intente con otra.');
+      if (!isCategoryExist.active) throw new ConflictException('La categoría no está activa. No puede ser asignada a este producto');
+      if (isCategoryExist.type !== typeCategories.PRODUCTS) throw new ConflictException('La categoría seleccionada no es una de tipo productos');
     }
 
     const updatedProduct = this.productsRepository.merge(productExists, updateProductDto);

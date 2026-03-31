@@ -1,74 +1,90 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Res, ParseIntPipe, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  ParseIntPipe,
+  Query,
+  HttpCode,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { PaginationDto } from '../../shared/dto/pagination.dto';  // ← RUTA CORREGIDA (../../)
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { Response } from 'express';
-import responses from '../../shared/utils/responses';  // ← RUTA CORREGIDA (../../)
+import { PaginationDto } from '../../shared/dto/pagination.dto';
+import productsDocs from './products.swagger';
 
-@ApiTags('products')
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
+  @productsDocs.createProductSwagger()
+  @HttpCode(201)
   @Post()
-  @ApiOperation({ summary: 'Crear un nuevo producto' })
-  async create(@Res() res: Response, @Body() createProductDto: CreateProductDto) {
+  async create(@Body() createProductDto: CreateProductDto) {
     try {
       const product = await this.productsService.create(createProductDto);
-      return responses.responseSuccessful(res, 201, 'Producto creado exitosamente', product);
+      return { message: 'Producto creado exitosamente', product };
     } catch (error) {
-      return responses.responsefailed(res, error.status || 500, error.message);
+      throw new InternalServerErrorException(error.mesagge);
     }
   }
 
+  @productsDocs.findAllProductsSwagger()
+  @HttpCode(200)
   @Get()
-  @ApiOperation({ summary: 'Listar todos los productos' })
-  async findAll(@Res() res: Response, @Query() paginationDto: PaginationDto) {
+  async findAll(@Query() paginationDto: PaginationDto) {
     try {
       const { active = true, page = 1, limit = 10, param = '' } = paginationDto;
       const products = await this.productsService.findAll(active, page, limit, param);
-      return responses.responseSuccessful(res, 200, 'Productos obtenidos exitosamente', products);
+
+      if (!products) {
+        throw new NotFoundException('No se encontraron productos registrados');
+      }
+
+      return { message: 'Productos obtenidos exitosamente', products };
     } catch (error) {
-      return responses.responsefailed(res, error.status || 500, error.message);
+      throw new InternalServerErrorException(error.mesagge);
     }
   }
 
+  @productsDocs.updateProductSwagger()
+  @HttpCode(204)
   @Patch(':id')
-  @ApiOperation({ summary: 'Actualizar un producto' })
-  async update(
-    @Res() res: Response,
-    @Param('id', ParseIntPipe) id: string,
-    @Body() updateProductDto: UpdateProductDto
-  ) {
+  async update(@Param('id', ParseIntPipe) id: string, @Body() updateProductDto: UpdateProductDto) {
     try {
       await this.productsService.update(+id, updateProductDto);
-      return responses.responseSuccessful(res, 204);
+      return;
     } catch (error) {
-      return responses.responsefailed(res, error.status || 500, error.message);
+      throw new InternalServerErrorException(error.mesagge);
     }
   }
 
+  @productsDocs.restoreProductSwagger()
+  @HttpCode(204)
   @Patch('restore/:id')
-  @ApiOperation({ summary: 'Restaurar un producto' })
-  async restore(@Res() res: Response, @Param('id', ParseIntPipe) id: string) {
+  async restore(@Param('id', ParseIntPipe) id: string) {
     try {
       await this.productsService.restore(+id);
-      return responses.responseSuccessful(res, 204);
+      return;
     } catch (error) {
-      return responses.responsefailed(res, error.status || 500, error.message);
+      throw new InternalServerErrorException(error.mesagge);
     }
   }
 
+  @productsDocs.removeProductSwagger()
+  @HttpCode(204)
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar un producto' })
-  async remove(@Res() res: Response, @Param('id', ParseIntPipe) id: string) {
+  async remove(@Param('id', ParseIntPipe) id: string) {
     try {
       await this.productsService.remove(+id);
-      return responses.responseSuccessful(res, 204);
+      return;
     } catch (error) {
-      return responses.responsefailed(res, error.status || 500, error.message);
+      throw new InternalServerErrorException(error.mesagge);
     }
   }
 }

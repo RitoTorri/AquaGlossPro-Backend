@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login';
-import { decodeToken, generateToken } from '../../shared/utils/tokens.utils';
+import { generateToken } from '../../shared/utils/tokens.utils';
 import { RolePermission } from '../../modules/role_permissions/entities/role_permission.entity';
 import bcrypt from 'bcrypt';
 
@@ -43,7 +43,7 @@ export class AuthService {
   }
 
   // La función de mapeo de permisos por modulos
-  private async getUserPermissions(userId: number) {
+  public async getUserPermissions(userId: number) {
     const permissions = await this.rolePermissionRepository
       .createQueryBuilder('rp')
       .innerJoin('rp.role', 'role')
