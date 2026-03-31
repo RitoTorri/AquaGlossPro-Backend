@@ -8,7 +8,7 @@ import { EmployeesModule } from '../employees/employees.module';
 @Module({
     imports: [
         TypeOrmModule.forFeature([Commission]),
-        EmployeesModule,
+        EmployeesModule, // necesario para inyectar EmployeesService
     ],
     controllers: [CommissionsController],
     providers: [CommissionsService],

@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Commission } from './entities/commission.entity';
 import { CreateCommissionDto } from './dto/create-commission.dto';
 import { UpdateCommissionDto } from './dto/update-commission.dto';
+import { UpdateCommissionStatusDto } from './dto/update-commission-status.dto';
 import { EmployeesService } from '../employees/employees.service';
 import { PaginationDto } from '../../shared/dto/pagination.dto';
 
@@ -12,14 +13,14 @@ export class CommissionsService {
     constructor(
         @InjectRepository(Commission)
         private readonly repository: Repository<Commission>,
-        private readonly employeesService: EmployeesService, // Inyectado
+        private readonly employeesService: EmployeesService,
     ) {}
 
     async create(createDto: CreateCommissionDto) {
-        // Verifica empleado usando findOne (que ahora existe)
+        // Verificar existencia del empleado
         await this.employeesService.findOne(createDto.employeeId);
 
-        // Verificar si ya existe comisión para el detalle (opcional)
+        // Opcional: verificar duplicado por saleDetailId
         const existing = await this.repository.findOne({
             where: { saleDetailId: createDto.saleDetailId },
             withDeleted: true,
@@ -33,14 +34,25 @@ export class CommissionsService {
         return this.findOne(saved.commissionId);
     }
 
-    async findAll(paginationDto: PaginationDto) {
-        const { limit = 10, page = 1 } = paginationDto;
-        const [data, total] = await this.repository.findAndCount({
-            relations: ['employee'],
-            take: limit,
-            skip: (page - 1) * limit,
-            order: { commissionId: 'ASC' },
-        });
+    async findAll(paginationDto: PaginationDto, search?: string) {
+        const { limit = 10, page = 1, active } = paginationDto;
+        const query = this.repository.createQueryBuilder('commission')
+            .leftJoinAndSelect('commission.employee', 'employee')
+            .where('commission.active = :active', { active: active !== undefined ? active : true });
+
+        if (search) {
+            query.andWhere(
+                '(employee.names ILIKE :search OR employee.lastnames ILIKE :search OR employee.ci ILIKE :search)',
+                { search: `%${search}%` }
+            );
+        }
+
+        const [data, total] = await query
+            .take(limit)
+            .skip((page - 1) * limit)
+            .orderBy('commission.commissionId', 'ASC')
+            .getManyAndCount();
+
         return {
             data,
             meta: {
@@ -74,6 +86,16 @@ export class CommissionsService {
             await this.employeesService.findOne(updateDto.employeeId);
         }
         Object.assign(entity, updateDto);
+        const updated = await this.repository.save(entity);
+        return this.findOne(updated.commissionId);
+    }
+
+    async updateStatus(id: number, statusDto: UpdateCommissionStatusDto) {
+        const entity = await this.findOne(id);
+        if (!entity.active) {
+            throw new ConflictException('La comisión está inactiva, no puede actualizarse');
+        }
+        entity.statusPaymentComission = statusDto.statusPaymentComission;
         const updated = await this.repository.save(entity);
         return this.findOne(updated.commissionId);
     }

@@ -3,10 +3,17 @@ import { CommissionsService } from './commissions.service';
 import { CreateCommissionDto } from './dto/create-commission.dto';
 import { UpdateCommissionDto } from './dto/update-commission.dto';
 import { PaginationDto } from '../../shared/dto/pagination.dto';
-import { ApiTags } from '@nestjs/swagger';
+import { 
+    ApiTags, 
+    ApiOperation, 
+    ApiCreatedResponse, 
+    ApiOkResponse, 
+    ApiNotFoundResponse, 
+    ApiConflictResponse,
+    ApiQuery 
+} from '@nestjs/swagger';
 import type { Response } from 'express';
 import responses from '../../shared/utils/responses';
-import * as docs from './commissions.swagger';
 
 @ApiTags('commissions')
 @Controller('commissions')
@@ -14,16 +21,26 @@ export class CommissionsController {
     constructor(private readonly commissionsService: CommissionsService) {}
 
     @Post()
-    @docs.ApiCreateDoc()
+    @ApiOperation({ summary: 'Crear una nueva comisión' })
+    @ApiCreatedResponse({ description: 'Comisión creada exitosamente' })
+    @ApiNotFoundResponse({ description: 'Empleado no encontrado' })
+    @ApiConflictResponse({ description: 'Ya existe una comisión para este detalle de venta' })
     async create(@Res() res: Response, @Body() createCommissionDto: CreateCommissionDto) {
         const result = await this.commissionsService.create(createCommissionDto);
         return responses.responseSuccessful(res, 201, 'Comisión creada exitosamente', result);
     }
 
     @Get()
-    @docs.ApiFindAllDoc()
-    async findAll(@Res() res: Response, @Query() paginationDto: PaginationDto) {
-        const results = await this.commissionsService.findAll(paginationDto);
+    @ApiOperation({ summary: 'Listar todas las comisiones', description: 'Filtra por nombre o cédula del empleado usando el parámetro "search".' })
+    @ApiQuery({ name: 'search', required: false, description: 'Buscar por nombre o cédula del empleado' })
+    @ApiOkResponse({ description: 'Comisiones obtenidas exitosamente' })
+    @ApiNotFoundResponse({ description: 'No hay registros' })
+    async findAll(
+        @Res() res: Response,
+        @Query() paginationDto: PaginationDto,
+        @Query('search') search?: string,
+    ) {
+        const results = await this.commissionsService.findAll(paginationDto, search);
         if (results.data.length === 0) {
             return responses.responseSuccessful(res, 404, 'No hay registros');
         }
@@ -31,14 +48,19 @@ export class CommissionsController {
     }
 
     @Get(':id')
-    @docs.ApiFindOneDoc()
+    @ApiOperation({ summary: 'Obtener una comisión por ID' })
+    @ApiOkResponse({ description: 'Comisión encontrada' })
+    @ApiNotFoundResponse({ description: 'Comisión no encontrada' })
     async findOne(@Res() res: Response, @Param('id', ParseIntPipe) id: string) {
         const result = await this.commissionsService.findOne(+id);
         return responses.responseSuccessful(res, 200, 'Comisión encontrada', result);
     }
 
     @Patch(':id')
-    @docs.ApiUpdateDoc()
+    @ApiOperation({ summary: 'Actualizar una comisión (incluye estado y demás campos)' })
+    @ApiOkResponse({ description: 'Comisión actualizada exitosamente' })
+    @ApiNotFoundResponse({ description: 'Comisión no encontrada' })
+    @ApiConflictResponse({ description: 'La comisión está inactiva o el empleado no existe' })
     async update(
         @Res() res: Response,
         @Param('id', ParseIntPipe) id: string,
@@ -49,16 +71,22 @@ export class CommissionsController {
     }
 
     @Patch('restore/:id')
-    @docs.ApiRestoreDoc()
+    @ApiOperation({ summary: 'Restaurar una comisión eliminada' })
+    @ApiOkResponse({ description: 'Comisión restaurada exitosamente' })
+    @ApiNotFoundResponse({ description: 'Comisión no encontrada' })
+    @ApiConflictResponse({ description: 'La comisión ya está activa' })
     async restore(@Res() res: Response, @Param('id', ParseIntPipe) id: string) {
         const result = await this.commissionsService.restore(+id);
-        return responses.responseSuccessful(res, 200, 'Comisión restaurada exitosamente', result);
+        return responses.responseSuccessful(res, 200, result.message);
     }
 
     @Delete(':id')
-    @docs.ApiRemoveDoc()
+    @ApiOperation({ summary: 'Eliminar una comisión (soft delete)' })
+    @ApiOkResponse({ description: 'Comisión eliminada exitosamente' })
+    @ApiNotFoundResponse({ description: 'Comisión no encontrada' })
+    @ApiConflictResponse({ description: 'La comisión ya está inactiva' })
     async remove(@Res() res: Response, @Param('id', ParseIntPipe) id: string) {
         const result = await this.commissionsService.remove(+id);
-        return responses.responseSuccessful(res, 200, 'Comisión eliminada exitosamente', result);
+        return responses.responseSuccessful(res, 200, result.message);
     }
 }
