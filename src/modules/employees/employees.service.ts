@@ -7,25 +7,19 @@ import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { PaginationDto } from '../../shared/dto/pagination.dto';
 import { JobsService } from '../jobs/jobs.service';
 
-
 @Injectable()
 export class EmployeesService {
   constructor(
     @InjectRepository(Employee)
     private readonly employeeRepository: Repository<Employee>,
     private readonly jobsService: JobsService,
-  ) { }
+  ) {}
 
   async create(createEmployeeDto: CreateEmployeeDto) {
-    const isEmailAlreadyExists = await this.findEmployeeByEmail(createEmployeeDto.email);
-    if (isEmailAlreadyExists) throw new ConflictException('Ya existe un empleado con ese email.');
+    // Validamos datos duplicados
+    await this.findDataDuplicate(createEmployeeDto.ci, createEmployeeDto.email, createEmployeeDto.numberPhone);
 
-    const isCiAlreadyExists = await this.findEmployeeByCi(createEmployeeDto.ci);
-    if (isCiAlreadyExists) throw new ConflictException('Ya existe un empleado con ese CI.');
-
-    const isNumberPhoneAlreadyExists = await this.findEmployeeByNumberPhone(createEmployeeDto.numberPhone);
-    if (isNumberPhoneAlreadyExists) throw new ConflictException('Ya existe un empleado con ese número de teléfono.');
-
+    // Validamos que el puesto de trabajo exista
     const isJobExists = await this.jobsService.findById(createEmployeeDto.jobId);
     if (!isJobExists) throw new NotFoundException('No existe un puesto de trabajo con ese ID.');
 
@@ -69,8 +63,8 @@ export class EmployeesService {
         itemPerPage: paginationDto.limit,
         currentPage: paginationDto.page,
         totalPages: Math.ceil(total / paginationDto.limit),
-      }
-    }
+      },
+    };
   }
 
   async update(id: number, updateEmployeeDto: UpdateEmployeeDto) {
@@ -78,27 +72,14 @@ export class EmployeesService {
     if (!isEmployeeExists) throw new NotFoundException('No existe un empleado con el ID proporcionado');
     if (!isEmployeeExists.active) throw new ConflictException('El empleado está inactivo. No puede ser actualizado');
 
-    // Verificamos que la cedula  que se va a actualizar no exista
-    if (updateEmployeeDto.ci) {
-      const isCiAlreadyExists = await this.findEmployeeByCi(updateEmployeeDto.ci);
-      if (isCiAlreadyExists && isCiAlreadyExists.employeeId !== id) {
-        throw new ConflictException('Ya existe un empleado con ese CI.');
-      }
-    }
+    // Validamos datos duplicados
+    await this.findDataDuplicate(updateEmployeeDto.ci, updateEmployeeDto.email, updateEmployeeDto.numberPhone, id);
 
-    // Verificamos que el email que se va a actualizar no exista
-    if (updateEmployeeDto.email) {
-      const isEmailAlreadyExists = await this.findEmployeeByEmail(updateEmployeeDto.email);
-      if (isEmailAlreadyExists && isEmailAlreadyExists.employeeId !== id){
-        throw new ConflictException('Ya existe un empleado con ese email.');
-      } 
-    }
-
-    // Verificamos que el número de teléfono que se va a actualizar no exista
-    if (updateEmployeeDto.numberPhone) {
-      const isNumberPhoneAlreadyExists = await this.findEmployeeByNumberPhone(updateEmployeeDto.numberPhone);
-      if (isNumberPhoneAlreadyExists && isNumberPhoneAlreadyExists.employeeId !== id) {
-        throw new ConflictException('Ya existe un empleado con ese número de teléfono.');
+    // Validamos que el puesto de trabajo exista
+    if (updateEmployeeDto.jobId) {
+      const isJobExists = await this.jobsService.findById(updateEmployeeDto.jobId);
+      if (!isJobExists || !isJobExists.active) {
+        throw new NotFoundException('No existe un puesto de trabajo con ese ID o esta inactivo.');
       }
     }
 
@@ -155,5 +136,44 @@ export class EmployeesService {
       select: ['employeeId', 'jobId', 'names', 'lastnames', 'email', 'numberPhone', 'ci', 'active'],
       withDeleted: true,
     });
+  }
+
+  async findDataDuplicate(
+    ci: string | null = null,
+    email: string | null = null,
+    numberPhone: string | null = null,
+    employeeIdExclude: number | null = null,
+  ) {
+    // Condiciones para buscar duplicados
+    const whereConditions: Array<{
+      ci?: string;
+      email?: string;
+      numberPhone?: string;
+    }> = [];
+
+    // Agregamos las condiciones para buscar duplicados
+    if (ci) whereConditions.push({ ci });
+    if (email) whereConditions.push({ email });
+    if (numberPhone) whereConditions.push({ numberPhone });
+
+    // Buscamos el empleado
+    const employees = await this.employeeRepository.find({
+      where: whereConditions,
+      select: ['employeeId', 'jobId', 'names', 'lastnames', 'email', 'numberPhone', 'ci', 'active'],
+      withDeleted: true,
+    });
+
+    for (const employee of employees) {
+      if (employeeIdExclude && employee.employeeId === employeeIdExclude) continue;
+      if (ci && employee.ci === ci) {
+        throw new ConflictException('Ya existe un empleado con ese CI.');
+      }
+      if (email && employee.email === email) {
+        throw new ConflictException('Ya existe un empleado con ese email.');
+      }
+      if (numberPhone && numberPhone === employee.numberPhone) {
+        throw new ConflictException('Ya existe un empleado con ese número de teléfono.');
+      }
+    }
   }
 }

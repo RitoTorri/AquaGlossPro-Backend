@@ -14,12 +14,9 @@ export class VehiclesService {
   constructor(
     @InjectRepository(Vehicle)
     private readonly vehiclesRepository: Repository<Vehicle>,
-    @InjectRepository(Client)
-    private readonly clientsRepository: Repository<Client>,
     private readonly clientsService: ClientsService,
-    private readonly typeVehicleService: TypeVehicleService
-  ) { }
-
+    private readonly typeVehicleService: TypeVehicleService,
+  ) {}
 
   async create(createVehicleDto: CreateVehicleDto) {
     // Validar que no exista un vehiculo con la misma placa
@@ -42,7 +39,6 @@ export class VehiclesService {
     const { limit, page, param, active } = paginationDto;
     const skip = (page - 1) * limit;
 
-  
     const [vehicles, total] = await this.vehiclesRepository.findAndCount({
       where: [
         { active, plate: param },
@@ -59,13 +55,13 @@ export class VehiclesService {
           lastnames: true,
           numberPhone: true,
           ci: true,
-          active: true
+          active: true,
         },
         typeVehicle: {
           typeVehicleId: true,
           name: true,
-          active: true
-        }
+          active: true,
+        },
       },
       take: limit,
       skip,
@@ -77,7 +73,7 @@ export class VehiclesService {
     // Agrupar vehículos por cliente
     const clientsMap = new Map();
 
-    vehicles.forEach(vehicle => {
+    vehicles.forEach((vehicle) => {
       const clientId = vehicle.owner.clientId;
 
       if (!clientsMap.has(clientId)) {
@@ -88,7 +84,7 @@ export class VehiclesService {
           numberPhone: vehicle.owner.numberPhone,
           ci: vehicle.owner.ci,
           active: vehicle.owner.active,
-          vehicles: []
+          vehicles: [],
         });
       }
 
@@ -96,7 +92,7 @@ export class VehiclesService {
         vehicleId: vehicle.vehicleId,
         plate: vehicle.plate,
         active: vehicle.active,
-        typeVehicle: vehicle.typeVehicle
+        typeVehicle: vehicle.typeVehicle,
       });
     });
 
@@ -160,7 +156,8 @@ export class VehiclesService {
   async update(id: number, updateVehicleDto: UpdateVehicleDto) {
     // Validar que exista el vehiculo
     const vehicleExist = await this.findById(id);
-    if (!vehicleExist || !vehicleExist.active) throw new NotFoundException('No existe un vehiculo con ese id o no está activo.');
+    if (!vehicleExist || !vehicleExist.active)
+      throw new NotFoundException('No existe un vehiculo con ese id o no está activo.');
 
     // Validar que exista el cliente
     if (updateVehicleDto.ownerId) {
@@ -204,7 +201,7 @@ export class VehiclesService {
     return await this.vehiclesRepository.findOne({
       where: { plate },
       select: ['vehicleId', 'typeVehicleId', 'ownerId', 'plate', 'active'],
-      withDeleted: true
+      withDeleted: true,
     });
   }
 

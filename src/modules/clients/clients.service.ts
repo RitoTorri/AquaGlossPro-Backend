@@ -14,13 +14,8 @@ export class ClientsService {
   ) {}
 
   async create(createClientDto: CreateClientDto) {
-    // Validamos que la cedula no la tenga otro cliente
-    const ciExist = await this.findByCi(createClientDto.ci);
-    if (ciExist) throw new ConflictException('La cedula o rif proporcionado ya existe');
-
-    // Validamos que el número de teléfono no lo tenga otro cliente
-    const numberPhoneExist = await this.findByNumberPhone(createClientDto.numberPhone);
-    if (numberPhoneExist) throw new ConflictException('El número de teléfono proporcionado ya existe');
+    // Validamos datos duplicados
+    await this.findDataDuplicate(createClientDto.ci, createClientDto.numberPhone);
 
     const client = this.clientsRepository.create(createClientDto);
     return await this.clientsRepository.save(client);
@@ -52,19 +47,8 @@ export class ClientsService {
     if (!clientExist) throw new NotFoundException('No se encontró el cliente con el id proporcionado');
     if (!clientExist.active) throw new ConflictException('El cliente está inactivo. No puede ser actualizado');
 
-    if (updateClientDto.ci) {
-      const ciExist = await this.findByCi(updateClientDto.ci);
-      if (ciExist && ciExist.clientId !== id) {
-        throw new ConflictException('La cedula o rif proporcionado ya existe');
-      }
-    }
-
-    if (updateClientDto.numberPhone) {
-      const numberPhoneExist = await this.findByNumberPhone(updateClientDto.numberPhone);
-      if (numberPhoneExist && numberPhoneExist.clientId !== id) {
-        throw new ConflictException('El número de teléfono proporcionado ya existe');
-      }
-    }
+    // Validamos datos duplicados
+    await this.findDataDuplicate(updateClientDto.ci, updateClientDto.numberPhone, id);
 
     const updateClient = await this.clientsRepository.merge(clientExist, updateClientDto);
     return await this.clientsRepository.save(updateClient);
@@ -130,6 +114,37 @@ export class ClientsService {
       });
     } catch (error) {
       throw error;
+    }
+  }
+
+  async findDataDuplicate(
+    ci: string | null = null,
+    numberPhone: string | null = null,
+    clientIdExclude: number | null = null,
+  ) {
+    const whereConditions: Array<{ ci?: string; numberPhone?: string }> = [];
+
+    if (ci) whereConditions.push({ ci });
+    if (numberPhone) whereConditions.push({ numberPhone });
+
+    if (whereConditions.length === 0) return;
+
+    const clients = await this.clientsRepository.find({
+      where: whereConditions,
+      select: ['clientId', 'ci', 'names', 'lastnames', 'numberPhone', 'active'],
+      withDeleted: true,
+    });
+
+    for (const client of clients) {
+      if (clientIdExclude && client.clientId === clientIdExclude) continue;
+
+      if (client.ci === ci) {
+        throw new ConflictException('La cedula o rif proporcionado ya existe');
+      }
+
+      if (client.numberPhone === numberPhone) {
+        throw new ConflictException('El número de teléfono proporcionado ya existe');
+      }
     }
   }
 }

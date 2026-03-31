@@ -13,20 +13,8 @@ export class SuppliersService {
   ) {}
 
   async create(createSupplierDto: CreateSupplierDto) {
-    // Validar que en la Db no exista un provedor con el email, telfono o cedula/rif
-    const isEmailAlreadyRegistered = await this.findByEmail(createSupplierDto.email);
-    if (isEmailAlreadyRegistered)
-      throw new ConflictException('Ya existe un proveedor con ese email. Por favor, cambie el email');
-
-    const isNumberPhoneAlreadyRegistered = await this.findByNumberPhone(createSupplierDto.numberPhone);
-    if (isNumberPhoneAlreadyRegistered)
-      throw new ConflictException(
-        'Ya existe un proveedor con ese numero de telefono. Por favor, cambie el numero de telefono',
-      );
-
-    const isCiAlreadyRegistered = await this.findByCi(createSupplierDto.ci);
-    if (isCiAlreadyRegistered)
-      throw new ConflictException('Ya existe un proveedor con ese cedula o rif. Por favor, cambie el cedula o rif');
+    // Validamos duplicados
+    await this.findDataDuplicate(createSupplierDto.ci, createSupplierDto.email, createSupplierDto.numberPhone);
 
     const newSupplier = this.supplierRepository.create(createSupplierDto);
     return await this.supplierRepository.save(newSupplier);
@@ -49,31 +37,8 @@ export class SuppliersService {
     if (!supplierExists) throw new NotFoundException('No se encontro un proveedor con el ID proporcionado');
     if (!supplierExists.active) throw new ConflictException('Proveedor está inactivo. No puede ser actualizado');
 
-    // Verficamos que el email que se va a actualizar no exista
-    if (updateSupplierDto.email) {
-      const isEmailAlreadyRegistered = await this.findByEmail(updateSupplierDto.email);
-      if (isEmailAlreadyRegistered && isEmailAlreadyRegistered.supplierId !== id) {
-        throw new ConflictException('Ya existe un proveedor con ese email. Por favor, use otro email.');
-      }
-    }
-
-    // VErficamos que el numero de telefono que se va a actualizar no exista
-    if (updateSupplierDto.numberPhone) {
-      const isNumberPhoneAlreadyRegistered = await this.findByNumberPhone(updateSupplierDto.numberPhone);
-      if (isNumberPhoneAlreadyRegistered && isNumberPhoneAlreadyRegistered.supplierId !== id) {
-        throw new ConflictException(
-          'Ya existe un proveedor con ese numero de telefono. Por favor, use otro numero de telefono.',
-        );
-      }
-    }
-
-    // Verficamos que el cedula o rif que se va a actualizar no exista
-    if (updateSupplierDto.ci) {
-      const isCiAlreadyRegistered = await this.findByCi(updateSupplierDto.ci);
-      if (isCiAlreadyRegistered && isCiAlreadyRegistered.supplierId !== id) {
-        throw new ConflictException('Ya existe un proveedor con ese cedula o rif. Por favor, use otro cedula o rif.');
-      }
-    }
+    // Validamos duplicados
+    await this.findDataDuplicate(updateSupplierDto.ci, updateSupplierDto.email, updateSupplierDto.numberPhone, id);
 
     // Actualizamos el proveedor
     const updateSupplier = await this.supplierRepository.merge(supplierExists, updateSupplierDto);
@@ -155,5 +120,45 @@ export class SuppliersService {
       select: ['supplierId', 'names', 'lastnames', 'email', 'numberPhone', 'ci', 'active'],
       withDeleted: true,
     });
+  }
+
+  async findDataDuplicate(
+    ci: string | null = null,
+    email: string | null = null,
+    numberPhone: string | null = null,
+    supplierIdExclude: number | null = null,
+  ) {
+    // Condiciones para buscar duplicados
+    const whereConditions: Array<{
+      ci?: string;
+      email?: string;
+      numberPhone?: string;
+      supplierIdExclude?: number;
+    }> = [];
+
+    // Agregamos las condiciones para buscar duplicados
+    if (ci) whereConditions.push({ ci });
+    if (email) whereConditions.push({ email });
+    if (numberPhone) whereConditions.push({ numberPhone });
+
+    // Buscamos el empleado
+    const suppliers = await this.supplierRepository.find({
+      where: whereConditions,
+      select: ['supplierId', 'names', 'lastnames', 'email', 'numberPhone', 'ci', 'active'],
+      withDeleted: true,
+    });
+
+    for (const supplier of suppliers) {
+      if (supplierIdExclude && supplier.supplierId === supplierIdExclude) continue;
+      if (ci && supplier.ci === ci) {
+        throw new ConflictException('Ya existe un proveedor con ese CI.');
+      }
+      if (email && supplier.email === email) {
+        throw new ConflictException('Ya existe un proveedor con ese email.');
+      }
+      if (numberPhone && numberPhone === supplier.numberPhone) {
+        throw new ConflictException('Ya existe un proveedor con ese número de teléfono.');
+      }
+    }
   }
 }
