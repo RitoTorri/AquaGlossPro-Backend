@@ -10,6 +10,7 @@ import {
   Query,
   InternalServerErrorException,
   HttpCode,
+  HttpException,
 } from '@nestjs/common';
 import { JobsService } from './jobs.service';
 import { CreateJobDto } from './dto/create-job.dto';
@@ -29,6 +30,8 @@ export class JobsController {
       const job = await this.jobsService.create(createJobDto);
       return { message: 'Puesto de trabajo creado exitosamente', data: job };
     } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
       throw new InternalServerErrorException(error.message);
     }
   }
@@ -38,10 +41,11 @@ export class JobsController {
   @Get()
   async findAll(@Query() paginationDto: PaginationDto) {
     try {
-      const { active = true, page = 1, limit = 10, param = '' } = paginationDto;
-      const jobs = await this.jobsService.findAll(active, page, limit, param);
+      const jobs = await this.jobsService.findAll(paginationDto);
       return { message: 'Puestos de trabajo obtenidos exitosamente', data: jobs };
     } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
       throw new InternalServerErrorException(error.message);
     }
   }
@@ -54,6 +58,8 @@ export class JobsController {
       await this.jobsService.update(+id, updateJobDto);
       return { message: 'Puesto de trabajo actualizado exitosamente' };
     } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
       throw new InternalServerErrorException(error.message);
     }
   }
@@ -66,6 +72,8 @@ export class JobsController {
       await this.jobsService.restore(+id);
       return { message: 'Puesto de trabajo restaurado exitosamente' };
     } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
       throw new InternalServerErrorException(error.message);
     }
   }
@@ -78,6 +86,8 @@ export class JobsController {
       await this.jobsService.remove(+id);
       return { message: 'Puesto de trabajo eliminado exitosamente' };
     } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
       throw new InternalServerErrorException(error.message);
     }
   }

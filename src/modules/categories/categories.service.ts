@@ -23,27 +23,62 @@ export class CategoriesService {
     return await this.categoryRepository.save(createdCategory);
   }
 
-  async findAll(paginatiionDto: PaginationDto) {
-    const [categories, total] = await this.categoryRepository.findAndCount({
-      where: [
-        { active: paginatiionDto.active, name: ILike(`%${paginatiionDto.param?.toLowerCase()}%`) },
-        { active: paginatiionDto.active, type: paginatiionDto.param as typeCategories },
-      ],
-      take: paginatiionDto.limit,
-      skip: (paginatiionDto.page - 1) * paginatiionDto.limit,
-      select: ['categoryId', 'name', 'type', 'description', 'active'],
-      order: { categoryId: 'ASC' },
-      withDeleted: true,
-    });
+  async findAll(paginationDto: PaginationDto) {
+    const { limit, page, active, param } = paginationDto;
+    const offset = (page - 1) * limit;
+
+    // 1. Obtener totales globales (sin paginación y sin filtro de active en el WHERE final)
+    const totalsQuery = `
+        SELECT 
+            COUNT(*) AS total_items,
+            COUNT(*) FILTER(WHERE active = true) AS total_items_active,
+            COUNT(*) FILTER(WHERE active = false) AS total_items_inactive
+        FROM categories
+    `;
+    const totalsResult = await this.categoryRepository.query(totalsQuery);
+    const totals = totalsResult[0] || { total_items: 0, total_items_active: 0, total_items_inactive: 0 };
+
+    // 2. Obtener datos paginados con filtros
+    const parameters: any[] = [limit, offset, active];
+    let dataQuery = `
+        SELECT 
+            c."categoryId",
+            c.name,
+            c.type,
+            c.description,
+            c.active
+        FROM categories c
+        WHERE c.active = $3
+        ORDER BY c."categoryId" ASC
+        LIMIT $1 OFFSET $2
+    `;
+
+    if (param && param.trim() !== '') {
+      dataQuery += ` AND (c.name ILIKE $4)`;
+      parameters.push(`%${param.toUpperCase()}%`);
+    }
+
+    const result = await this.categoryRepository.query(dataQuery, parameters);
+
+    const categories = result.map((row) => ({
+      categoryId: row.categoryId,
+      name: row.name,
+      type: row.type,
+      description: row.description,
+      active: row.active,
+    }));
 
     return {
       data: categories,
       meta: {
-        totalItems: total,
-        totalCounts: categories.length,
-        itemPerPage: paginatiionDto.limit,
-        totalPages: Math.ceil(total / paginatiionDto.limit),
-        currentPage: paginatiionDto.page,
+        itemPerPage: limit,
+        currentPage: page,
+        totalPages: Math.ceil((parseInt(totals.total_items) || 0) / limit),
+        totals: {
+          active: parseInt(totals.total_items_active) || 0,
+          inactive: parseInt(totals.total_items_inactive) || 0,
+          general: parseInt(totals.total_items) || 0,
+        },
       },
     };
   }

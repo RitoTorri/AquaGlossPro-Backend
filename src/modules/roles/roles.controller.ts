@@ -8,6 +8,8 @@ import {
   Delete,
   ParseIntPipe,
   HttpCode,
+  InternalServerErrorException,
+  HttpException,
   //UseGuards
 } from '@nestjs/common';
 import { RolesService } from './roles.service';
@@ -25,11 +27,17 @@ export class RolesController {
   @Post()
   @HttpCode(201)
   async create(@Body() createRoleDto: CreateRoleDto) {
-    const role = await this.rolesService.create(createRoleDto);
-    return {
-      data: role,
-      message: 'Role creado exitosamente',
-    };
+    try {
+      const role = await this.rolesService.create(createRoleDto);
+      return {
+        data: role,
+        message: 'Role creado exitosamente',
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @Docs.findAllRoles()
@@ -37,9 +45,14 @@ export class RolesController {
   @Get()
   @HttpCode(200)
   async findAll() {
-    const roles = await this.rolesService.findAll();
-    if (roles.length === 0) throw new Error('No hay roles registrados en el sistema');
-    return { message: 'Roles encontrados exitosamente', data: roles };
+    try {
+      const roles = await this.rolesService.findAll();
+      return { message: 'Roles encontrados exitosamente', data: roles };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @Docs.updateRole()
@@ -47,8 +60,14 @@ export class RolesController {
   @Patch(':id')
   @HttpCode(204)
   async update(@Param('id', ParseIntPipe) id: string, @Body() updateRoleDto: UpdateRoleDto) {
-    await this.rolesService.update(+id, updateRoleDto);
-    return;
+    try {
+      await this.rolesService.update(+id, updateRoleDto);
+      return;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @Docs.restoreRole()
@@ -56,8 +75,14 @@ export class RolesController {
   @Patch('restore/:id')
   @HttpCode(204)
   async restore(@Param('id', ParseIntPipe) id: string) {
-    await this.rolesService.restore(+id);
-    return;
+    try {
+      await this.rolesService.restore(+id);
+      return;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @Docs.deleteRole()
@@ -65,7 +90,13 @@ export class RolesController {
   @Delete(':id')
   @HttpCode(204)
   async remove(@Param('id', ParseIntPipe) id: string) {
-    await this.rolesService.remove(+id);
-    return;
+    try {
+      await this.rolesService.remove(+id);
+      return;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 }

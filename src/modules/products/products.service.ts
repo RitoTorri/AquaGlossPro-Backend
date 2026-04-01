@@ -6,6 +6,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { CategoriesService } from '../categories/categories.service';
 import { typeCategories } from '../../shared/enums/types.categories.enums';
+import { PaginationDto } from '../../shared/dto/pagination.dto';
 
 @Injectable()
 export class ProductsService {
@@ -13,7 +14,7 @@ export class ProductsService {
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
     private readonly categoriesService: CategoriesService,
-  ) { }
+  ) {}
 
   async create(createProductDto: CreateProductDto) {
     // Validar que el nombre no exista
@@ -25,52 +26,98 @@ export class ProductsService {
     // Validar que exista la categoria
     const isCategoryExist = await this.categoriesService.findById(createProductDto.categoryId);
     if (!isCategoryExist) throw new NotFoundException('La categoría no existe. Intente con otra.');
-    if (!isCategoryExist.active) throw new ConflictException('La categoría no está activa. No puede ser asignada a este producto');
-    if (isCategoryExist.type !== typeCategories.PRODUCTS) throw new ConflictException('La categoría seleccionada no es una de tipo productos');
+    if (!isCategoryExist.active)
+      throw new ConflictException('La categoría no está activa. No puede ser asignada a este producto');
+    if (isCategoryExist.type !== typeCategories.PRODUCTS)
+      throw new ConflictException('La categoría seleccionada no es una de tipo productos');
 
     const newProduct = this.productsRepository.create(createProductDto);
     return await this.productsRepository.save(newProduct);
   }
 
-  async findAll(active: boolean, page: number, limit: number, param: string) {
-    try {
-      const where = param
-        ? { active, name: ILike(`%${param.toUpperCase()}%`) }
-        : { active };
+  async findAll(paginationDto: PaginationDto) {
+    const { limit, page, active, param } = paginationDto;
+    const offset = (page - 1) * limit;
 
-      const [products, total] = await this.productsRepository.findAndCount({
-        where,
-        take: limit,
-        skip: (page - 1) * limit,
-        select: {
-          productId: true,
-          name: true,
-          unitCostLiter: true,
-          currentStock: true,
-          minStock: true,
-          unitType: true,
-          active: true,
-          createdAt: true,
-          category: { categoryId: true, name: true, type: true, active: true },
-        },
-        order: { productId: 'ASC' },
-        relations: ['category'],
-        withDeleted: true,
-      });
+    // Asegurar tipos correctos
+    const limitNum = Number(limit);
+    const offsetNum = Number(offset);
+    const activeBool = active === true || active === 'true';
 
-      return {
-        data: products,
-        meta: {
-          totalItems: total,
-          itemCount: products.length,
-          itemsPerPage: limit,
-          totalPages: Math.ceil(total / limit),
-          currentPage: page,
-        },
-      };
-    } catch (error) {
-      throw error;
+    // 1. Obtener totales globales
+    const totalsQuery = `
+        SELECT 
+            COUNT(*) AS total_general,
+            COUNT(*) FILTER(WHERE active = true) AS total_active,
+            COUNT(*) FILTER(WHERE active = false) AS total_inactive
+        FROM products
+    `;
+    const totalsResult = await this.productsRepository.query(totalsQuery);
+    const globalTotals = totalsResult[0];
+
+    // 2. Construir parámetros en el ORDEN CORRECTO
+    // $1 = limit, $2 = offset, $3 = active
+    const parameters: any[] = [limitNum, offsetNum, activeBool];
+
+    // Construir la condición WHERE base
+    let whereCondition = `p.active = $3`;
+
+    // Si hay param, agregar condición de búsqueda
+    if (param && param.trim() !== '') {
+      whereCondition += ` AND (p.name ILIKE $4)`;
+      parameters.push(`%${param.toUpperCase()}%`);
     }
+
+    const dataQuery = `
+        SELECT 
+            p."productId",
+            p.name,
+            p."unitCostLiter",
+            p."currentStock",
+            p."minStock",
+            p."unitType",
+            p.active,
+            p."createdAt",
+            json_build_object(
+                'categoryId', c."categoryId",
+                'name', c.name,
+                'type', c.type,
+                'active', c.active
+            ) AS category
+        FROM products p
+        INNER JOIN categories c ON p."categoryId" = c."categoryId"
+        WHERE ${whereCondition}
+        ORDER BY p."productId" ASC
+        LIMIT $1 OFFSET $2
+    `;
+
+    const result = await this.productsRepository.query(dataQuery, parameters);
+
+    const products = result.map((row) => ({
+      productId: row.productId,
+      name: row.name,
+      unitCostLiter: parseFloat(row.unitCostLiter),
+      currentStock: parseInt(row.currentStock),
+      minStock: parseInt(row.minStock),
+      unitType: row.unitType,
+      active: row.active,
+      createdAt: row.createdAt,
+      category: row.category,
+    }));
+
+    return {
+      data: products,
+      meta: {
+        itemPerPage: limitNum,
+        currentPage: page,
+        totalPages: Math.ceil((parseInt(globalTotals.total_general) || 0) / limitNum),
+        totals: {
+          general: parseInt(globalTotals.total_general) || 0,
+          active: parseInt(globalTotals.total_active) || 0,
+          inactive: parseInt(globalTotals.total_inactive) || 0,
+        },
+      },
+    };
   }
 
   async update(id: number, updateProductDto: UpdateProductDto) {
@@ -92,8 +139,10 @@ export class ProductsService {
     if (updateProductDto.categoryId) {
       const isCategoryExist = await this.categoriesService.findById(updateProductDto.categoryId);
       if (!isCategoryExist) throw new NotFoundException('La categoría no existe. Intente con otra.');
-      if (!isCategoryExist.active) throw new ConflictException('La categoría no está activa. No puede ser asignada a este producto');
-      if (isCategoryExist.type !== typeCategories.PRODUCTS) throw new ConflictException('La categoría seleccionada no es una de tipo productos');
+      if (!isCategoryExist.active)
+        throw new ConflictException('La categoría no está activa. No puede ser asignada a este producto');
+      if (isCategoryExist.type !== typeCategories.PRODUCTS)
+        throw new ConflictException('La categoría seleccionada no es una de tipo productos');
     }
 
     const updatedProduct = this.productsRepository.merge(productExists, updateProductDto);

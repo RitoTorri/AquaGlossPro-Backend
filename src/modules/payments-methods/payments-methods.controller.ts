@@ -11,6 +11,7 @@ import {
   Query,
   InternalServerErrorException,
   HttpCode,
+  HttpException,
 } from '@nestjs/common';
 import { PaymentsMethodsService } from './payments-methods.service';
 import { CreatePaymentMethodDto } from './dto/create-payment-method.dto';
@@ -30,6 +31,8 @@ export class PaymentsMethodsController {
       const paymentMethod = await this.paymentsMethodsService.create(createPaymentMethodDto);
       return { message: 'Método de pago creado exitosamente', data: paymentMethod };
     } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
       throw new InternalServerErrorException(error.message);
     }
   }
@@ -39,10 +42,11 @@ export class PaymentsMethodsController {
   @HttpCode(200)
   async findAll(@Query() paginationDto: PaginationDto) {
     try {
-      const { active = true, page = 1, limit = 10, param = '' } = paginationDto;
-      const paymentMethods = await this.paymentsMethodsService.findAll(active, page, limit, param);
+      const paymentMethods = await this.paymentsMethodsService.findAll(paginationDto);
       return { message: 'Métodos de pago obtenidos exitosamente', data: paymentMethods };
     } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
       throw new InternalServerErrorException(error.message);
     }
   }
@@ -59,6 +63,8 @@ export class PaymentsMethodsController {
       await this.paymentsMethodsService.update(+id, updatePaymentMethodDto);
       return;
     } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
       throw new InternalServerErrorException(error.message);
     }
   }
@@ -71,6 +77,8 @@ export class PaymentsMethodsController {
       await this.paymentsMethodsService.restore(+id);
       return;
     } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
       throw new InternalServerErrorException(error.message);
     }
   }
@@ -83,6 +91,8 @@ export class PaymentsMethodsController {
       await this.paymentsMethodsService.remove(+id);
       return;
     } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
       throw new InternalServerErrorException(error.message);
     }
   }

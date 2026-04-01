@@ -36,63 +36,96 @@ export class VehiclesService {
   }
 
   async findAll(paginationDto: PaginationDto) {
-    const { limit, page, param, active } = paginationDto;
-    const skip = (page - 1) * limit;
+    const { limit, page, active, param } = paginationDto;
+    const offset = (page - 1) * limit;
 
-    const [vehicles, total] = await this.vehiclesRepository.findAndCount({
-      where: [
-        { active, plate: param },
-        { active, owner: { names: ILike(`%${param}%`) } },
-        { active, owner: { lastnames: ILike(`%${param}%`) } },
-      ],
-      select: {
-        vehicleId: true,
-        plate: true,
-        active: true,
-        owner: {
-          clientId: true,
-          names: true,
-          lastnames: true,
-          numberPhone: true,
-          ci: true,
-          active: true,
-        },
-        typeVehicle: {
-          typeVehicleId: true,
-          name: true,
-          active: true,
-        },
-      },
-      take: limit,
-      skip,
-      order: { vehicleId: 'ASC' },
-      relations: ['owner', 'typeVehicle'],
-      withDeleted: true,
-    });
+    // Asegurar tipos correctos
+    const limitNum = Number(limit);
+    const offsetNum = Number(offset);
+    const activeBool = active === true || active === 'true';
+
+    // 1. Obtener totales globales de vehículos
+    const totalsQuery = `
+        SELECT 
+            COUNT(*) AS total_general,
+            COUNT(*) FILTER(WHERE active = true) AS total_active,
+            COUNT(*) FILTER(WHERE active = false) AS total_inactive
+        FROM vehicles
+    `;
+    const totalsResult = await this.vehiclesRepository.query(totalsQuery);
+    const globalTotals = totalsResult[0];
+
+    // 2. Construir parámetros en el orden correcto
+    // $1 = limit, $2 = offset, $3 = active
+    const parameters: any[] = [limitNum, offsetNum, activeBool];
+
+    // Construir la condición WHERE base
+    let whereCondition = `v.active = $3`;
+
+    // Si param existe, buscar en plate, owner.names o owner.lastnames
+    if (param && param.trim() !== '') {
+      whereCondition += ` AND (
+            v.plate ILIKE $4 OR 
+            c.names ILIKE $4 OR 
+            c.lastnames ILIKE $4
+        )`;
+      parameters.push(`%${param.toUpperCase()}%`);
+    }
+
+    const dataQuery = `
+        SELECT 
+            v."vehicleId",
+            v.plate,
+            v.active AS vehicle_active,
+            json_build_object(
+                'clientId', c."clientId",
+                'names', c.names,
+                'lastnames', c.lastnames,
+                'numberPhone', c."numberPhone",
+                'ci', c.ci,
+                'active', c.active
+            ) AS owner,
+            json_build_object(
+                'typeVehicleId', tv."typeVehicleId",
+                'name', tv.name,
+                'active', tv.active
+            ) AS typeVehicle
+        FROM vehicles v
+        INNER JOIN clients c ON v."ownerId" = c."clientId"
+        INNER JOIN types_vehicles tv ON v."typeVehicleId" = tv."typeVehicleId"
+        WHERE ${whereCondition}
+        ORDER BY v."vehicleId" ASC
+        LIMIT $1 OFFSET $2
+    `;
+
+    console.log('Parameters:', parameters);
+    console.log('Query:', dataQuery);
+
+    const result = await this.vehiclesRepository.query(dataQuery, parameters);
 
     // Agrupar vehículos por cliente
     const clientsMap = new Map();
 
-    vehicles.forEach((vehicle) => {
-      const clientId = vehicle.owner.clientId;
+    result.forEach((row) => {
+      const clientId = row.owner.clientId;
 
       if (!clientsMap.has(clientId)) {
         clientsMap.set(clientId, {
-          clientId: vehicle.owner.clientId,
-          names: vehicle.owner.names,
-          lastnames: vehicle.owner.lastnames,
-          numberPhone: vehicle.owner.numberPhone,
-          ci: vehicle.owner.ci,
-          active: vehicle.owner.active,
+          clientId: row.owner.clientId,
+          names: row.owner.names,
+          lastnames: row.owner.lastnames,
+          numberPhone: row.owner.numberPhone,
+          ci: row.owner.ci,
+          active: row.owner.active,
           vehicles: [],
         });
       }
 
       clientsMap.get(clientId).vehicles.push({
-        vehicleId: vehicle.vehicleId,
-        plate: vehicle.plate,
-        active: vehicle.active,
-        typeVehicle: vehicle.typeVehicle,
+        vehicleId: row.vehicleId,
+        plate: row.plate,
+        active: row.vehicle_active,
+        typeVehicle: row.typeVehicle,
       });
     });
 
@@ -101,56 +134,16 @@ export class VehiclesService {
     return {
       data: clients,
       meta: {
-        totalItems: total,
-        itemCount: clients.length,
-        itemsPerPage: limit,
-        totalPages: Math.ceil(total / limit),
+        itemPerPage: limitNum,
         currentPage: page,
+        totalPages: Math.ceil((parseInt(globalTotals.total_general) || 0) / limitNum),
+        totals: {
+          general: parseInt(globalTotals.total_general) || 0,
+          active: parseInt(globalTotals.total_active) || 0,
+          inactive: parseInt(globalTotals.total_inactive) || 0,
+        },
       },
     };
-
-    /*const [vehicles, total] = await this.vehiclesRepository.findAndCount({
-      where: [
-        { active, plate: param },
-        { active, owner: { names: ILike(`%${param}%`) } },
-        { active, owner: { lastnames: ILike(`%${param}%`) } },
-        { active, owner: { ci: param } },
-      ],
-      select: {
-        vehicleId: true,
-        plate: true,
-        active: true,
-        owner: {
-          clientId: true,
-          names: true,
-          lastnames: true,
-          numberPhone: true,
-          ci: true,
-          active: true
-        },
-        typeVehicle: {
-          typeVehicleId: true,
-          name: true,
-          active: true
-        }
-      },
-      take: limit,
-      skip,
-      order: { vehicleId: 'ASC' },
-      relations: ['owner', 'typeVehicle'],
-      withDeleted: true,
-    })
-
-    return {
-      data: vehicles,
-      meta: {
-        totalItems: total,
-        itemCount: vehicles.length,
-        itemsPerPage: limit,
-        totalPages: Math.ceil(total / limit),
-        currentPage: page,
-      },
-    };*/
   }
 
   async update(id: number, updateVehicleDto: UpdateVehicleDto) {

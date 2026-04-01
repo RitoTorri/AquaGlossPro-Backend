@@ -28,41 +28,72 @@ export class EmployeesService {
   }
 
   async findEmployees(paginationDto: PaginationDto) {
-    const [employees, total] = await this.employeeRepository.findAndCount({
-      where: [
-        { active: paginationDto.active, names: ILike(`%${paginationDto.param?.toUpperCase()}%`) },
-        { active: paginationDto.active, lastnames: ILike(`%${paginationDto.param?.toUpperCase()}%`) },
-        { active: paginationDto.active, ci: paginationDto.param },
-      ],
-      take: paginationDto.limit,
-      skip: (paginationDto.page - 1) * paginationDto.limit,
-      select: {
-        employeeId: true,
-        job: {
-          jobId: true,
-          name: true,
-          baseSalary: true,
-        },
-        names: true,
-        lastnames: true,
-        email: true,
-        numberPhone: true,
-        ci: true,
-        active: true,
-      },
-      relations: ['job'],
-      order: { employeeId: 'ASC' },
-      withDeleted: true,
-    });
+    const { limit, page, active, param } = paginationDto;
+    const offset = (page - 1) * limit;
+
+    // 1. Obtener totales globales
+    const totalsQuery = `
+        SELECT 
+            COUNT(*) AS total_items,
+            COUNT(*) FILTER(WHERE active = true) AS total_items_active,
+            COUNT(*) FILTER(WHERE active = false) AS total_items_inactive
+        FROM employees
+    `;
+    const totalsResult = await this.employeeRepository.query(totalsQuery);
+    const totals = totalsResult[0] || { total_items: 0, total_items_active: 0, total_items_inactive: 0 };
+
+    // 2. Obtener datos paginados con filtros
+    const parameters: any[] = [limit, offset, active];
+    let dataQuery = `
+        SELECT 
+            e."employeeId",
+            e.names,
+            e.lastnames,
+            e.email,
+            e."numberPhone",
+            e.ci,
+            e.active,
+            json_build_object(
+                'jobId', j."jobId",
+                'name', j.name,
+                'baseSalary', j."baseSalary"
+            ) AS job
+        FROM employees e
+        LEFT JOIN jobs j ON e."jobId" = j."jobId"
+        WHERE e.active = $3
+        ORDER BY e."employeeId" ASC
+        LIMIT $1 OFFSET $2
+    `;
+
+    if (param && param.trim() !== '') {
+      dataQuery += ` AND (e.ci ILIKE $4 OR e.names ILIKE $4 OR e.lastnames ILIKE $4)`;
+      parameters.push(`%${param.toUpperCase()}%`);
+    }
+
+    const result = await this.employeeRepository.query(dataQuery, parameters);
+
+    const employees = result.map((row) => ({
+      employeeId: row.employeeId,
+      names: row.names,
+      lastnames: row.lastnames,
+      email: row.email,
+      numberPhone: row.numberPhone,
+      ci: row.ci,
+      active: row.active,
+      job: row.job,
+    }));
 
     return {
       data: employees,
       meta: {
-        totalItems: total,
-        itemCount: employees.length,
-        itemPerPage: paginationDto.limit,
-        currentPage: paginationDto.page,
-        totalPages: Math.ceil(total / paginationDto.limit),
+        itemPerPage: limit,
+        currentPage: page,
+        totalPages: Math.ceil((parseInt(totals.total_items) || 0) / limit),
+        totals: {
+          general: parseInt(totals.total_items) || 0,
+          active: parseInt(totals.total_items_active) || 0,
+          inactive: parseInt(totals.total_items_inactive) || 0,
+        },
       },
     };
   }

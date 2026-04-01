@@ -4,6 +4,7 @@ import { Repository, ILike } from 'typeorm';
 import { Job } from './entities/job.entity';
 import { CreateJobDto } from './dto/create-job.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
+import { PaginationDto } from '../../shared/dto/pagination.dto';
 
 @Injectable()
 export class JobsService {
@@ -23,40 +24,64 @@ export class JobsService {
     return await this.jobsRepository.save(newJob);
   }
 
-  async findAll(active: boolean, page: number, limit: number, param: string) {
-    try {
-      const where = param 
-        ? { active, name: ILike(`%${param.toUpperCase()}%`) }
-        : { active };
+  async findAll(paginationDto: PaginationDto) {
+    const { limit, page, active, param } = paginationDto;
+    const offset = (page - 1) * limit;
 
-      const [jobs, total] = await this.jobsRepository.findAndCount({
-        where,
-        take: limit,
-        skip: (page - 1) * limit,
-        select: {
-          jobId: true,
-          name: true,
-          baseSalary: true,
-          active: true,
-          createdAt: true,
-        },
-        order: { jobId: 'ASC' },
-        withDeleted: true,
-      });
+    // 1. Obtener totales globales (sin paginación y sin filtro de active en el WHERE final)
+    const totalsQuery = `
+        SELECT 
+            COUNT(*) AS total_items,
+            COUNT(*) FILTER(WHERE active = true) AS total_items_active,
+            COUNT(*) FILTER(WHERE active = false) AS total_items_inactive
+        FROM jobs
+    `;
+    const totalsResult = await this.jobsRepository.query(totalsQuery);
+    const totals = totalsResult[0] || { total_items: 0, total_items_active: 0, total_items_inactive: 0 };
 
-      return {
-        data: jobs,
-        meta: {
-          totalItems: total,
-          itemCount: jobs.length,
-          itemsPerPage: limit,
-          totalPages: Math.ceil(total / limit),
-          currentPage: page,
-        },
-      };
-    } catch (error) {
-      throw error;
+    // 2. Obtener datos paginados con filtros
+    const parameters: any[] = [limit, offset, active];
+    let dataQuery = `
+        SELECT 
+            j."jobId",
+            j.name,
+            j."baseSalary",
+            j.active,
+            j."createdAt"
+        FROM jobs j
+        WHERE j.active = $3
+        ORDER BY j."jobId" ASC
+        LIMIT $1 OFFSET $2
+    `;
+
+    if (param && param.trim() !== '') {
+      dataQuery += ` AND (j.name ILIKE $4)`;
+      parameters.push(`%${param.toUpperCase()}%`);
     }
+
+    const jobsRaw = await this.jobsRepository.query(dataQuery, parameters);
+
+    const jobs = jobsRaw.map((row) => ({
+      jobId: row.jobId,
+      name: row.name,
+      baseSalary: row.baseSalary,
+      active: row.active,
+      createdAt: row.createdAt,
+    }));
+
+    return {
+      data: jobs,
+      meta: {
+        itemPerPage: limit,
+        currentPage: page,
+        totalPages: Math.ceil((parseInt(totals.total_items) || 0) / limit),
+        totals: {
+          active: parseInt(totals.total_items_active) || 0,
+          inactive: parseInt(totals.total_items_inactive) || 0,
+          general: parseInt(totals.total_items) || 0,
+        },
+      },
+    };
   }
 
   async update(id: number, updateJobDto: UpdateJobDto) {

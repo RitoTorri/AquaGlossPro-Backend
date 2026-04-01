@@ -4,6 +4,7 @@ import { Repository, ILike } from 'typeorm';
 import { PaymentMethod } from './entities/payment-method.entity';
 import { CreatePaymentMethodDto } from './dto/create-payment-method.dto';
 import { UpdatePaymentMethodDto } from './dto/update-payment-method.dto';
+import { PaginationDto } from '../../shared/dto/pagination.dto';
 
 @Injectable()
 export class PaymentsMethodsService {
@@ -23,39 +24,63 @@ export class PaymentsMethodsService {
     return await this.paymentMethodRepository.save(newPaymentMethod);
   }
 
-  async findAll(active: boolean, page: number, limit: number, param: string) {
-    try {
-      const where = param 
-        ? { active, name: ILike(`%${param.toUpperCase()}%`) }
-        : { active };
+  async findAll(paginationDto: PaginationDto) {
+    const { limit, page, active, param } = paginationDto;
+    const offset = (page - 1) * limit;
 
-      const [paymentMethods, total] = await this.paymentMethodRepository.findAndCount({
-        where,
-        take: limit,
-        skip: (page - 1) * limit,
-        select: {
-          paymentMethodId: true,
-          name: true,
-          active: true,
-          createdAt: true,
-        },
-        order: { paymentMethodId: 'ASC' },
-        withDeleted: true,
-      });
+    // 1. Obtener totales globales (sin paginación)
+    const totalsQuery = `
+        SELECT 
+            COUNT(*) AS total_items,
+            COUNT(*) FILTER(WHERE active = true) AS total_items_active,
+            COUNT(*) FILTER(WHERE active = false) AS total_items_inactive
+        FROM payments_methods
+    `;
+    const totalsResult = await this.paymentMethodRepository.query(totalsQuery);
+    const totals = totalsResult[0] || { total_items: 0, total_items_active: 0, total_items_inactive: 0 };
 
-      return {
-        data: paymentMethods,
-        meta: {
-          totalItems: total,
-          itemCount: paymentMethods.length,
-          itemsPerPage: limit,
-          totalPages: Math.ceil(total / limit),
-          currentPage: page,
-        },
-      };
-    } catch (error) {
-      throw error;
+    // 2. Obtener datos paginados con filtros
+    const parameters: any[] = [limit, offset, active];
+    let dataQuery = `
+        SELECT 
+            pm."paymentMethodId",
+            pm.name,
+            pm.active,
+            pm."createdAt"
+        FROM payments_methods pm
+        WHERE pm.active = $3
+        ORDER BY pm."paymentMethodId" ASC
+        LIMIT $1 OFFSET $2
+    `;
+
+    // Si param existe, agregar condición de búsqueda por name
+    if (param && param.trim() !== '') {
+      dataQuery += ` AND (pm.name ILIKE $4)`;
+      parameters.push(`%${param.toUpperCase()}%`);
     }
+
+    const result = await this.paymentMethodRepository.query(dataQuery, parameters);
+
+    const paymentMethods = result.map((row) => ({
+      paymentMethodId: row.paymentMethodId,
+      name: row.name,
+      active: row.active,
+      createdAt: row.createdAt,
+    }));
+
+    return {
+      data: paymentMethods,
+      meta: {
+        itemPerPage: limit,
+        currentPage: page,
+        totalPages: Math.ceil((parseInt(totals.total_items) || 0) / limit),
+        totals: {
+          general: parseInt(totals.total_items) || 0,
+          active: parseInt(totals.total_items_active) || 0,
+          inactive: parseInt(totals.total_items_inactive) || 0,
+        },
+      },
+    };
   }
 
   async update(id: number, updatePaymentMethodDto: UpdatePaymentMethodDto) {

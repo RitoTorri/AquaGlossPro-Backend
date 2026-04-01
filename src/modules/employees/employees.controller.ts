@@ -9,7 +9,8 @@ import {
   Query,
   ParseIntPipe,
   HttpCode,
-  NotFoundException,
+  HttpException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { PaginationDto } from '../../shared/dto/pagination.dto';
 import { EmployeesService } from './employees.service';
@@ -25,44 +26,72 @@ export class EmployeesController {
   @HttpCode(201)
   @Post()
   async create(@Body() createEmployeeDto: CreateEmployeeDto) {
-    const result = await this.employeesService.create(createEmployeeDto);
-    return {
-      data: result,
-      message: 'Empleado creado exitosamente',
-    };
+    try {
+      const result = await this.employeesService.create(createEmployeeDto);
+      return {
+        data: result,
+        message: 'Empleado creado exitosamente',
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @Docs.ApiFindEmployeesDoc()
   @HttpCode(200)
   @Get()
   async findAll(@Query() paginationDto: PaginationDto) {
-    const results = await this.employeesService.findEmployees(paginationDto);
-
-    if (results.data.length === 0) throw new NotFoundException({ message: 'No hay empleados para mostrar' });
-    return { data: results, message: 'Empleados obtenidos exitosamente' };
+    try {
+      const results = await this.employeesService.findEmployees(paginationDto);
+      return { message: 'Empleados obtenidos exitosamente', results };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @Docs.ApiUpdateEmployeeDoc()
   @HttpCode(204)
   @Patch(':id')
   async update(@Param('id', ParseIntPipe) id: string, @Body() updateEmployeeDto: UpdateEmployeeDto) {
-    await this.employeesService.update(+id, updateEmployeeDto);
-    return;
+    try {
+      await this.employeesService.update(+id, updateEmployeeDto);
+      return;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @Docs.ApiRemoveEmployeeDoc()
   @HttpCode(204)
   @Delete(':id')
   async remove(@Param('id', ParseIntPipe) id: string) {
-    await this.employeesService.remove(+id);
-    return;
+    try {
+      await this.employeesService.remove(+id);
+      return;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @Docs.ApiRestoreEmployeeDoc()
   @HttpCode(204)
   @Patch('restore/:id')
   async restore(@Param('id', ParseIntPipe) id: string) {
-    await this.employeesService.restore(+id);
-    return;
+    try {
+      await this.employeesService.restore(+id);
+      return;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 }
