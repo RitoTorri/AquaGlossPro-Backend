@@ -80,7 +80,9 @@ export class ModulesService {
       meta: {
         itemPerPage: limit,
         currentPage: page,
-        totalPages: Math.ceil((parseInt(totals.total_items) || 0) / limit),
+        totalPages: paginationDto.active
+          ? Math.ceil((parseInt(totals.total_items_active) || 0) / limit)
+          : Math.ceil((parseInt(totals.total_items_inactive) || 0) / limit),
         totals: {
           general: parseInt(totals.total_items) || 0,
           active: parseInt(totals.total_items_active) || 0,

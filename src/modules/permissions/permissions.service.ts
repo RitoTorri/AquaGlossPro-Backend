@@ -103,7 +103,9 @@ export class PermissionsService {
       meta: {
         itemPerPage: limit,
         currentPage: page,
-        totalPages: Math.ceil((parseInt(globalTotals.total_general) || 0) / limit),
+        totalPages: paginationDto.active
+          ? Math.ceil((parseInt(globalTotals.total_active) || 0) / limit)
+          : Math.ceil((parseInt(globalTotals.total_inactive) || 0) / limit),
         totals: {
           general: parseInt(globalTotals.total_general) || 0,
           active: parseInt(globalTotals.total_active) || 0,

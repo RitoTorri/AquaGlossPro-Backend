@@ -147,7 +147,9 @@ export class ServicesService {
       meta: {
         itemPerPage: limitNum,
         currentPage: page,
-        totalPages: Math.ceil((parseInt(globalTotals.total_general) || 0) / limitNum),
+        totalPages: paginationDto.active
+          ? Math.ceil((parseInt(globalTotals.total_active) || 0) / limitNum)
+          : Math.ceil((parseInt(globalTotals.total_inactive) || 0) / limitNum),
         totals: {
           general: parseInt(globalTotals.total_general) || 0,
           active: parseInt(globalTotals.total_active) || 0,
