@@ -43,7 +43,9 @@ export class EmployeesService {
     const totals = totalsResult[0] || { total_items: 0, total_items_active: 0, total_items_inactive: 0 };
 
     // 2. Obtener datos paginados con filtros
-    const parameters: any[] = [limit, offset, active];
+    // Definir los parámetros en el orden correcto: limit, offset, active, param
+    const parameters: any[] = [Number(limit), Number(offset), active];
+
     let dataQuery = `
         SELECT 
             e."employeeId",
@@ -61,14 +63,14 @@ export class EmployeesService {
         FROM employees e
         LEFT JOIN jobs j ON e."jobId" = j."jobId"
         WHERE e.active = $3
-        ORDER BY e."employeeId" ASC
-        LIMIT $1 OFFSET $2
     `;
 
     if (param && param.trim() !== '') {
       dataQuery += ` AND (e.ci ILIKE $4 OR e.names ILIKE $4 OR e.lastnames ILIKE $4)`;
       parameters.push(`%${param.toUpperCase()}%`);
     }
+
+    dataQuery += ` ORDER BY e."employeeId" ASC LIMIT $1 OFFSET $2`;
 
     const result = await this.employeeRepository.query(dataQuery, parameters);
 
