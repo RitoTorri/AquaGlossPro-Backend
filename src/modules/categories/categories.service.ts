@@ -12,10 +12,10 @@ export class CategoriesService {
   constructor(
     @InjectRepository(Category)
     private readonly categoryRepository: Repository<Category>,
-  ) { }
+  ) {}
 
   async create(createCategoryDto: CreateCategoryDto) {
-    // Validamos que el nombre no esté repetido
+    // Validamos que el nombre no esté repetido para el mismo tipo
     const category = await this.findByName(createCategoryDto.name, createCategoryDto.type);
     if (category) throw new ConflictException('Ya existe una categoría con este nombre para el tipo seleccionado');
 
@@ -23,31 +23,46 @@ export class CategoriesService {
     return await this.categoryRepository.save(createdCategory);
   }
 
-  async findAll(paginatiionDto: PaginationDto) {
-    const [categories, total] = await this.categoryRepository.findAndCount({
-      where: [
-        { active: paginatiionDto.active, name: ILike(`%${paginatiionDto.param?.toLowerCase()}%`) },
-        { active: paginatiionDto.active, type: paginatiionDto.param as typeCategories },
-      ],
-      take: paginatiionDto.limit,
-      skip: (paginatiionDto.page - 1) * paginatiionDto.limit,
-      select: ['categoryId', 'name', 'type', 'description', 'active'],
-      order: {
-        categoryId: 'ASC',
-      },
-      withDeleted: true,
-    });
+  async findAll(paginationDto: PaginationDto) {
+    const queryBuilder = this.categoryRepository.createQueryBuilder('category')
+      .select([
+        'category.categoryId',
+        'category.name',
+        'category.type',
+        'category.description',
+        'category.active',
+      ])
+      .withDeleted();
+
+    // Solo filtrar por active si se proporciona
+    if (paginationDto.active !== undefined) {
+      queryBuilder.andWhere('category.active = :active', { active: paginationDto.active });
+    }
+
+    // Buscar por nombre o tipo si se envía param
+    if (paginationDto.param) {
+      queryBuilder.andWhere(
+        '(category.name ILIKE :param OR category.type ILIKE :param)',
+        { param: `%${paginationDto.param.toLowerCase()}%` }
+      );
+    }
+
+    const [categories, total] = await queryBuilder
+      .take(paginationDto.limit)
+      .skip((paginationDto.page - 1) * paginationDto.limit)
+      .orderBy('category.categoryId', 'ASC')
+      .getManyAndCount();
 
     return {
       data: categories,
       meta: {
         totalItems: total,
         totalCounts: categories.length,
-        itemPerPage: paginatiionDto.limit,
-        totalPages: Math.ceil(total / paginatiionDto.limit),
-        currentPage: paginatiionDto.page
-      }
-    }
+        itemPerPage: paginationDto.limit,
+        totalPages: Math.ceil(total / paginationDto.limit),
+        currentPage: paginationDto.page,
+      },
+    };
   }
 
   async restore(id: number) {
@@ -57,7 +72,7 @@ export class CategoriesService {
 
     category.active = true;
     category.deletedAt = null;
-    return await this.categoryRepository.save(category)
+    return await this.categoryRepository.save(category);
   }
 
   async update(id: number, updateCategoryDto: UpdateCategoryDto) {
@@ -72,7 +87,7 @@ export class CategoriesService {
     }
 
     const updatedCategory = this.categoryRepository.merge(isCategoryExistsById, updateCategoryDto);
-    return await this.categoryRepository.save(updatedCategory)
+    return await this.categoryRepository.save(updatedCategory);
   }
 
   async remove(id: number) {
@@ -81,8 +96,8 @@ export class CategoriesService {
     if (!category.active) throw new ConflictException('Esta categoria ya esta eliminada. No puede ser eliminada nuevamente.');
 
     category.active = false;
-    category.deletedAt = new Date()
-    return await this.categoryRepository.save(category)
+    category.deletedAt = new Date();
+    return await this.categoryRepository.save(category);
   }
 
   async findById(id: number) {
@@ -90,7 +105,7 @@ export class CategoriesService {
       where: { categoryId: id },
       select: ['categoryId', 'name', 'type', 'description', 'active'],
       withDeleted: true,
-    })
+    });
   }
 
   async findByName(name: string, type: typeCategories) {
@@ -98,6 +113,6 @@ export class CategoriesService {
       where: { name: name, type: type },
       select: ['categoryId', 'name', 'type', 'description', 'active'],
       withDeleted: true,
-    })
+    });
   }
 }

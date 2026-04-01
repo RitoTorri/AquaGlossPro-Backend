@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, OneToMany } from 'typeorm';
 import { Vehicle } from '../../vehicles/entities/vehicle.entity';
+import { ServicesTypeVehicle } from '../../services-type-vehicle/entities/services-type-vehicle.entity';
 
 @Entity('types_vehicles')
 export class TypeVehicle {
@@ -21,7 +22,9 @@ export class TypeVehicle {
     @DeleteDateColumn({ type: 'timestamptz', nullable: true })
     deletedAt: Date | null;
 
-    // Relaciones
     @OneToMany(() => Vehicle, (vehicle) => vehicle.typeVehicle)
     vehicles: Vehicle[];
+
+    @OneToMany(() => ServicesTypeVehicle, (stv) => stv.typeVehicle)
+    servicesTypeVehicle: ServicesTypeVehicle[];
 }

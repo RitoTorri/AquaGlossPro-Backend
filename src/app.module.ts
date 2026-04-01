@@ -22,6 +22,9 @@ import { TypeVehicleModule } from './modules/type-vehicle/type-vehicle.module';
 import { VehiclesModule } from './modules/vehicles/vehicles.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { GeneralExceptionFilter } from './shared/filters/catch_exeptions.filters';
+import { CommissionsModule } from './modules/commissions/commissions.module';
+import { CombosModule } from './modules/combos/combos.module';
+import { CombosServicesModule } from './modules/combos-services/combos-services.module';
 
 @Module({
   imports: [
@@ -66,6 +69,12 @@ import { GeneralExceptionFilter } from './shared/filters/catch_exeptions.filters
     VehiclesModule,
 
     CategoriesModule,
+
+    CommissionsModule,
+
+    CombosServicesModule,
+
+    CombosModule,
   ],
   controllers: [PermissionsController],
   providers: [

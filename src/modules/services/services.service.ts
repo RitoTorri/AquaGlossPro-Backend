@@ -16,19 +16,22 @@ export class ServicesService {
   ) { }
 
   async create(createServiceDto: CreateServiceDto) {
-    // Validacion de existencia por nombre
+    // Validar nombre único
     const serviceExists = await this.findByName(createServiceDto.name);
     if (serviceExists) throw new ConflictException('Ya existe un servicio con ese nombre. Por favor, cambie el nombre');
 
     // Validar que la categoría exista
-    const categoryExists = await this.categoriesService.findById(createServiceDto.categoryId);
+   const categoryExists = await this.categoriesService.findById(createServiceDto.categoryId);
     if (!categoryExists) throw new NotFoundException('No se encontro una categoría con el ID proporcionado');
     if (!categoryExists.active) throw new ConflictException('Categoría está inactiva. No puede ser utilizada');
-    if (categoryExists.type !== typeCategories.SERVICES) throw new ConflictException('La categoría seleccionada no es una de tipo servicios');
+    if (categoryExists.type !== typeCategories.SERVICES) {
+        throw new ConflictException('La categoría seleccionada no es una de tipo servicios');
+    }
 
     const newService = this.serviceRepository.create(createServiceDto);
     return await this.serviceRepository.save(newService);
   }
+
 
 
   async remove(id: number) {

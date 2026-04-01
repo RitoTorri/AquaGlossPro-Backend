@@ -7,13 +7,13 @@ import { ServicesModule } from '../services/services.module';
 import { TypeVehicleModule } from '../type-vehicle/type-vehicle.module';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([ServicesTypeVehicle]),
-        ServicesModule,
-        TypeVehicleModule,
-    ],
-    controllers: [ServicesTypeVehicleController],
-    providers: [ServicesTypeVehicleService],
-    exports: [ServicesTypeVehicleService],
+  imports: [
+    TypeOrmModule.forFeature([ServicesTypeVehicle]),
+    ServicesModule,
+    TypeVehicleModule,
+  ],
+  controllers: [ServicesTypeVehicleController],
+  providers: [ServicesTypeVehicleService],
+  exports: [ServicesTypeVehicleService],
 })
 export class ServicesTypeVehicleModule {}

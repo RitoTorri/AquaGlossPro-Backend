@@ -18,11 +18,9 @@ export class ServicesTypeVehicleService {
     ) {}
 
     async create(createDto: CreateServicesTypeVehicleDto) {
-        // Verificar existencia
-        await this.servicesService.findOne(createDto.serviceId);
-        await this.typeVehicleService.findOne(createDto.typeVehicleId);
+        await this.servicesService.findById(createDto.serviceId);
+        await this.typeVehicleService.findById(createDto.typeVehicleId);
 
-        // Verificar duplicado
         const existing = await this.repository.findOne({
             where: {
                 serviceId: createDto.serviceId,
@@ -39,16 +37,23 @@ export class ServicesTypeVehicleService {
         return this.findOne(saved.serviceTypeVehicleId);
     }
 
-    // 🔧 MÉTODO findAll SIMPLIFICADO (sin filtros complejos)
     async findAll(paginationDto: PaginationDto) {
-        const { limit = 10, page = 1 } = paginationDto;
+        const { limit = 10, page = 1, active } = paginationDto;
+
+        const where = active !== undefined ? { active } : {};
 
         const [data, total] = await this.repository.findAndCount({
+            where,
             relations: ['service', 'typeVehicle'],
             take: limit,
             skip: (page - 1) * limit,
             order: { serviceTypeVehicleId: 'ASC' },
         });
+
+        const [activeCount, inactiveCount] = await Promise.all([
+            this.repository.count({ where: { active: true } }),
+            this.repository.count({ where: { active: false } }),
+        ]);
 
         return {
             data,
@@ -58,6 +63,8 @@ export class ServicesTypeVehicleService {
                 itemsPerPage: limit,
                 totalPages: Math.ceil(total / limit),
                 currentPage: page,
+                activeCount,
+                inactiveCount,
             },
         };
     }
@@ -96,10 +103,10 @@ export class ServicesTypeVehicleService {
             }
 
             if (updateDto.serviceId) {
-                await this.servicesService.findOne(updateDto.serviceId);
+                await this.servicesService.findById(updateDto.serviceId);
             }
             if (updateDto.typeVehicleId) {
-                await this.typeVehicleService.findOne(updateDto.typeVehicleId);
+                await this.typeVehicleService.findById(updateDto.typeVehicleId);
             }
         }
 
