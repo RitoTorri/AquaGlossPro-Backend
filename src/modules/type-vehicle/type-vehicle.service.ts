@@ -4,6 +4,7 @@ import { Repository, ILike } from 'typeorm';
 import { TypeVehicle } from './entities/type-vehicle.entity';
 import { CreateTypeVehicleDto } from './dto/create-type-vehicle.dto';
 import { UpdateTypeVehicleDto } from './dto/update-type-vehicle.dto';
+import { PaginationDto } from '../../shared/dto/pagination.dto';
 
 @Injectable()
 export class TypeVehicleService {
@@ -19,7 +20,8 @@ export class TypeVehicleService {
         return this.typeVehicleRepository.save(entity);
     }
 
-    async findAll(active: boolean, page: number, limit: number, param: string) {
+    async findAll(paginationDto: PaginationDto) {
+        const { active, page, limit, param } = paginationDto;
         const where = param
             ? { active, name: ILike(`%${param.toUpperCase()}%`) }
             : { active };
@@ -30,6 +32,11 @@ export class TypeVehicleService {
             order: { typeVehicleId: 'ASC' },
             withDeleted: true,
         });
+
+        // Calcular conteos adicionales
+        const activeCount = await this.typeVehicleRepository.count({ where: { active: true } });
+        const inactiveCount = await this.typeVehicleRepository.count({ where: { active: false } });
+
         return {
             data,
             meta: {
@@ -38,6 +45,8 @@ export class TypeVehicleService {
                 itemsPerPage: limit,
                 totalPages: Math.ceil(total / limit),
                 currentPage: page,
+                activeCount,
+                inactiveCount,
             },
         };
     }

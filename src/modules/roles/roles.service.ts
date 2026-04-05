@@ -10,7 +10,7 @@ export class RolesService {
   constructor(
     @InjectRepository(Role)
     private readonly roleRepository: Repository<Role>,
-  ) { }
+  ) {}
 
   async create(createRoleDto: CreateRoleDto) {
     const roleExists = await this.findByName(createRoleDto.name);
@@ -20,16 +20,35 @@ export class RolesService {
     return await this.roleRepository.save(newRole);
   }
 
-
-  async findAll(): Promise<Role[]> {
-    return await this.roleRepository.find({
-      where: { active: true },
+  async findAll(active: boolean = true): Promise<{ data: Role[]; totals: any }> {
+    // 1. Obtener los roles
+    const roles = await this.roleRepository.find({
+      where: { active: active },
       select: ['roleId', 'name', 'active'],
       order: { roleId: 'ASC' },
       withDeleted: true,
     });
-  }
 
+    // 2. Obtener totales globales
+    const totalsQuery = `
+        SELECT 
+            COUNT(*) AS total_general,
+            COUNT(*) FILTER(WHERE active = true) AS total_active,
+            COUNT(*) FILTER(WHERE active = false) AS total_inactive
+        FROM roles
+    `;
+    const totalsResult = await this.roleRepository.query(totalsQuery);
+    const globalTotals = totalsResult[0];
+
+    return {
+      data: roles,
+      totals: {
+        general: parseInt(globalTotals.total_general) || 0,
+        active: parseInt(globalTotals.total_active) || 0,
+        inactive: parseInt(globalTotals.total_inactive) || 0,
+      },
+    };
+  }
 
   async update(id: number, updateRoleDto: UpdateRoleDto) {
     const roleExists = await this.findById(id);
@@ -38,13 +57,13 @@ export class RolesService {
 
     if (updateRoleDto.name) {
       const roleWithSameName = await this.findByName(updateRoleDto.name);
-      if (roleWithSameName !== null && roleWithSameName.roleId !== id) throw new ConflictException('Ya existe un rol con ese nombre');
+      if (roleWithSameName !== null && roleWithSameName.roleId !== id)
+        throw new ConflictException('Ya existe un rol con ese nombre');
     }
 
     const updateRole = await this.roleRepository.merge(roleExists, updateRoleDto);
     return await this.roleRepository.save(updateRole);
   }
-
 
   async restore(id: number) {
     const roleExists = await this.findById(id);
@@ -53,7 +72,6 @@ export class RolesService {
 
     return await this.roleRepository.update(id, { active: true, deletedAt: null });
   }
-
 
   async remove(id: number) {
     const roleExists = await this.findById(id);
@@ -65,7 +83,6 @@ export class RolesService {
     return await this.roleRepository.save(roleExists);
   }
 
-  
   // Ayudadores de busqueda
   async findByName(name: string) {
     return await this.roleRepository.findOne({

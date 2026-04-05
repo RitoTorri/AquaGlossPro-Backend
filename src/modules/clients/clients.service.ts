@@ -2,7 +2,7 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ILike } from 'typeorm';
+import { PaginationDto } from '../../shared/dto/pagination.dto';
 import { Client } from './entities/client.entity';
 import { Repository } from 'typeorm';
 
@@ -14,13 +14,8 @@ export class ClientsService {
   ) {}
 
   async create(createClientDto: CreateClientDto) {
-    // Validamos que la cedula no la tenga otro cliente
-    const ciExist = await this.findByCi(createClientDto.ci);
-    if (ciExist) throw new ConflictException('La cedula o rif proporcionado ya existe');
-
-    // Validamos que el número de teléfono no lo tenga otro cliente
-    const numberPhoneExist = await this.findByNumberPhone(createClientDto.numberPhone);
-    if (numberPhoneExist) throw new ConflictException('El número de teléfono proporcionado ya existe');
+    // Validamos datos duplicados
+    await this.findDataDuplicate(createClientDto.ci, createClientDto.numberPhone);
 
     const client = this.clientsRepository.create(createClientDto);
     return await this.clientsRepository.save(client);
@@ -52,46 +47,76 @@ export class ClientsService {
     if (!clientExist) throw new NotFoundException('No se encontró el cliente con el id proporcionado');
     if (!clientExist.active) throw new ConflictException('El cliente está inactivo. No puede ser actualizado');
 
-    if (updateClientDto.ci) {
-      const ciExist = await this.findByCi(updateClientDto.ci);
-      if (ciExist && ciExist.clientId !== id) {
-        throw new ConflictException('La cedula o rif proporcionado ya existe');
-      }
-    }
-
-    if (updateClientDto.numberPhone) {
-      const numberPhoneExist = await this.findByNumberPhone(updateClientDto.numberPhone);
-      if (numberPhoneExist && numberPhoneExist.clientId !== id) {
-        throw new ConflictException('El número de teléfono proporcionado ya existe');
-      }
-    }
+    // Validamos datos duplicados
+    await this.findDataDuplicate(updateClientDto.ci, updateClientDto.numberPhone, id);
 
     const updateClient = await this.clientsRepository.merge(clientExist, updateClientDto);
     return await this.clientsRepository.save(updateClient);
   }
 
-  async findAll(active: boolean, page: number, limit: number, param: string) {
-    const [clients, total] = await this.clientsRepository.findAndCount({
-      where: [
-        { active: active, ci: ILike(`%${param}%`) },
-        { active: active, names: ILike(`%${param.toUpperCase()}%`) },
-        { active: active, lastnames: ILike(`%${param.toUpperCase()}%`) },
-      ],
-      take: limit,
-      skip: (page - 1) * limit,
-      select: ['clientId', 'ci', 'names', 'lastnames', 'numberPhone', 'active'],
-      order: { clientId: 'ASC' },
-      withDeleted: true,
-    });
+  async findClients(paginationDto: PaginationDto) {
+    const { limit, page, active, param } = paginationDto;
+    const offset = (page - 1) * limit;
+
+    // 1. Obtener totales globales (sin paginación y sin filtro de active en el WHERE final)
+    const totalsQuery = `
+        SELECT 
+            COUNT(*) AS total_items,
+            COUNT(*) FILTER(WHERE active = true) AS total_items_active,
+            COUNT(*) FILTER(WHERE active = false) AS total_items_inactive
+        FROM clients
+    `;
+    const totalsResult = await this.clientsRepository.query(totalsQuery);
+    const totals = totalsResult[0] || { total_items: 0, total_items_active: 0, total_items_inactive: 0 };
+
+    // 2. Obtener datos paginados con filtros
+    const parameters: any[] = [limit, offset, active];
+    let dataQuery = `
+        SELECT 
+            c."clientId",
+            (SELECT COUNT(*) FROM vehicles v1 WHERE v1."ownerId" = c."clientId" AND v1.active = true) AS count_vehicles,
+            c.names,
+            c.lastnames,
+            c."numberPhone",
+            c.ci,
+            c.active
+        FROM clients c
+        WHERE c.active = $3
+        ORDER BY c."clientId" ASC
+        LIMIT $1 OFFSET $2
+    `;
+
+    // Si param existe, agregar condición de búsqueda
+    if (param && param.trim() !== '') {
+      dataQuery += ` AND (c.ci ILIKE $4 OR c.names ILIKE $4 OR c.lastnames ILIKE $4)`;
+      parameters.push(`%${param.toUpperCase()}%`);
+    }
+
+    const result = await this.clientsRepository.query(dataQuery, parameters);
+
+    const clients = result.map((row) => ({
+      clientId: row.clientId,
+      names: row.names,
+      lastnames: row.lastnames,
+      numberPhone: row.numberPhone,
+      ci: row.ci,
+      active: row.active,
+      countVehicles: parseInt(row.count_vehicles) || 0,
+    }));
 
     return {
       data: clients,
       meta: {
-        totalItems: total,
-        itemCount: clients.length,
-        itemsPerPage: limit,
-        totalPages: Math.ceil(total / limit),
+        itemPerPage: limit,
         currentPage: page,
+        totalPages: paginationDto.active
+          ? Math.ceil((parseInt(totals.total_items_active) || 0) / limit)
+          : Math.ceil((parseInt(totals.total_items_inactive) || 0) / limit),
+        totals: {
+          general: parseInt(totals.total_items) || 0,
+          active: parseInt(totals.total_items_active) || 0,
+          inactive: parseInt(totals.total_items_inactive) || 0,
+        },
       },
     };
   }
@@ -130,6 +155,37 @@ export class ClientsService {
       });
     } catch (error) {
       throw error;
+    }
+  }
+
+  async findDataDuplicate(
+    ci: string | null = null,
+    numberPhone: string | null = null,
+    clientIdExclude: number | null = null,
+  ) {
+    const whereConditions: Array<{ ci?: string; numberPhone?: string }> = [];
+
+    if (ci) whereConditions.push({ ci });
+    if (numberPhone) whereConditions.push({ numberPhone });
+
+    if (whereConditions.length === 0) return;
+
+    const clients = await this.clientsRepository.find({
+      where: whereConditions,
+      select: ['clientId', 'ci', 'names', 'lastnames', 'numberPhone', 'active'],
+      withDeleted: true,
+    });
+
+    for (const client of clients) {
+      if (clientIdExclude && client.clientId === clientIdExclude) continue;
+
+      if (client.ci === ci) {
+        throw new ConflictException('La cedula o rif proporcionado ya existe');
+      }
+
+      if (client.numberPhone === numberPhone) {
+        throw new ConflictException('El número de teléfono proporcionado ya existe');
+      }
     }
   }
 }

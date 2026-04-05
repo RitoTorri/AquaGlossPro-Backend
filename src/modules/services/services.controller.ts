@@ -11,6 +11,8 @@ import {
   Query,
   NotFoundException,
   HttpCode,
+  InternalServerErrorException,
+  HttpException,
 } from '@nestjs/common';
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
@@ -26,44 +28,69 @@ export class ServicesController {
   @HttpCode(201)
   @Post()
   async create(@Body() createServiceDto: CreateServiceDto) {
-    const service = await this.servicesService.create(createServiceDto);
-    return { message: 'Servicio creado exitosamente', data: service };
+    try {
+      const service = await this.servicesService.create(createServiceDto);
+      return { message: 'Servicio creado exitosamente', data: service };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.error(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @servicesSwagger.removeServiceSwagger()
   @HttpCode(204)
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    await this.servicesService.remove(+id);
-    return;
+  async remove(@Param('id', ParseIntPipe) id: string) {
+    try {
+      await this.servicesService.remove(+id);
+      return;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.error(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @servicesSwagger.updateServiceSwagger()
   @HttpCode(204)
   @Patch(':id')
   async update(@Param('id', ParseIntPipe) id: string, @Body() updateServiceDto: UpdateServiceDto) {
-    await this.servicesService.update(+id, updateServiceDto);
-    return;
+    try {
+      await this.servicesService.update(+id, updateServiceDto);
+      return;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.error(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @servicesSwagger.restoreServiceSwagger()
   @HttpCode(204)
   @Patch('restore/:id')
   async restore(@Param('id', ParseIntPipe) id: string) {
-    await this.servicesService.restore(+id);
-    return;
+    try {
+      await this.servicesService.restore(+id);
+      return;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.error(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @servicesSwagger.findAllServicesSwagger()
   @HttpCode(200)
   @Get()
   async findAll(@Query() paginationDto: PaginationDto) {
-    const { active, page = 1, limit = 10, param = '' } = paginationDto;
-    const services = await this.servicesService.findAll(active, page, limit, param);
-
-    if (services.data.length === 0) {
-      throw new NotFoundException('No se encontraron servicios registrados');
+    try {
+      const services = await this.servicesService.findAll(paginationDto);
+      return { message: 'Servicios obtenidos exitosamente', data: services };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.error(error);
+      throw new InternalServerErrorException(error.message);
     }
-    return { message: 'Servicios obtenidos exitosamente', data: services };
   }
 }

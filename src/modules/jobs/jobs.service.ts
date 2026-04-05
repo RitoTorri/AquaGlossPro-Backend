@@ -4,6 +4,7 @@ import { Repository, ILike } from 'typeorm';
 import { Job } from './entities/job.entity';
 import { CreateJobDto } from './dto/create-job.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
+import { PaginationDto } from '../../shared/dto/pagination.dto';
 
 @Injectable()
 export class JobsService {
@@ -21,7 +22,8 @@ export class JobsService {
         return this.jobsRepository.save(job);
     }
 
-    async findAll(active: boolean, page: number, limit: number, param: string) {
+    async findAll(paginationDto: PaginationDto) {
+        const { active, page, limit, param } = paginationDto;
         const where = param
             ? { active, name: ILike(`%${param.toUpperCase()}%`) }
             : { active };
@@ -32,6 +34,11 @@ export class JobsService {
             order: { jobId: 'ASC' },
             withDeleted: true,
         });
+
+        // Calcular conteos adicionales
+        const activeCount = await this.jobsRepository.count({ where: { active: true } });
+        const inactiveCount = await this.jobsRepository.count({ where: { active: false } });
+
         return {
             data,
             meta: {
@@ -40,6 +47,8 @@ export class JobsService {
                 itemsPerPage: limit,
                 totalPages: Math.ceil(total / limit),
                 currentPage: page,
+                activeCount,
+                inactiveCount,
             },
         };
     }

@@ -5,7 +5,8 @@ import { Repository, ILike } from 'typeorm';
 import { RolesService } from '../roles/roles.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcrypt';
+import { PaginationDto } from '../../shared/dto/pagination.dto';
 
 @Injectable()
 export class UsersService {
@@ -13,7 +14,7 @@ export class UsersService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly rolesService: RolesService,
-  ) { }
+  ) {}
 
   async create(createUserDto: CreateUserDto) {
     const userExists = await this.findByEmail(createUserDto.email);
@@ -27,7 +28,7 @@ export class UsersService {
 
     const newUser = this.userRepository.create({
       ...createUserDto,
-      password: passwordHash
+      password: passwordHash,
     });
     const userSaved = await this.userRepository.save(newUser);
 
@@ -35,36 +36,85 @@ export class UsersService {
     return result;
   }
 
+  async findAll(paginationDto: PaginationDto) {
+    const { limit, page, active, param } = paginationDto;
+    const offset = (page - 1) * limit;
 
-  async findAll(active: boolean, page: number, limit: number, param: string | '') {
-    const [users, total] = await this.userRepository.findAndCount({
-      where: { active: active, name: ILike(`%${param?.toUpperCase()}%`) },
-      take: limit,
-      skip: (page - 1) * limit,
-      select: {
-        userId: true,
-        name: true,
-        email: true,
-        active: true,
-        role: { roleId: true, name: true },
-      },
-      relations: ['role'],
-      order: { userId: 'ASC' },
-      withDeleted: true,
-    });
+    // Asegurar tipos correctos
+    const limitNum = Number(limit);
+    const offsetNum = Number(offset);
+    const activeBool = active === true || active === 'true';
+
+    // 1. Obtener totales globales
+    const totalsQuery = `
+        SELECT 
+            COUNT(*) AS total_general,
+            COUNT(*) FILTER(WHERE active = true) AS total_active,
+            COUNT(*) FILTER(WHERE active = false) AS total_inactive
+        FROM users
+    `;
+    const totalsResult = await this.userRepository.query(totalsQuery);
+    const globalTotals = totalsResult[0];
+
+    // 2. Construir parámetros en el orden correcto
+    // $1 = limit, $2 = offset, $3 = active
+    const parameters: any[] = [limitNum, offsetNum, activeBool];
+
+    // Construir la condición WHERE base
+    let whereCondition = `u.active = $3`;
+
+    // Si param existe, buscar en name
+    if (param && param.trim() !== '') {
+      whereCondition += ` AND (u.name ILIKE $4)`;
+      parameters.push(`%${param.toUpperCase()}%`);
+    }
+
+    const dataQuery = `
+        SELECT 
+            u."userId",
+            u.name,
+            u.email,
+            u.active,
+            json_build_object(
+                'roleId', r."roleId",
+                'name', r.name
+            ) AS role
+        FROM users u
+        INNER JOIN roles r ON u."roleId" = r."roleId"
+        WHERE ${whereCondition}
+        ORDER BY u."userId" ASC
+        LIMIT $1 OFFSET $2
+    `;
+
+    console.log('Parameters:', parameters);
+    console.log('Query:', dataQuery);
+
+    const result = await this.userRepository.query(dataQuery, parameters);
+
+    const users = result.map((row) => ({
+      userId: row.userId,
+      name: row.name,
+      email: row.email,
+      active: row.active,
+      role: row.role,
+    }));
 
     return {
       data: users,
       meta: {
-        totalItems: total,
-        itemCount: users.length,
-        itemsPerPage: limit,
-        totalPages: Math.ceil(total / limit),
+        itemPerPage: limitNum,
         currentPage: page,
+        totalPages: paginationDto.active
+          ? Math.ceil((parseInt(globalTotals.total_active) || 0) / limitNum)
+          : Math.ceil((parseInt(globalTotals.total_inactive) || 0) / limitNum),
+        totals: {
+          general: parseInt(globalTotals.total_general) || 0,
+          active: parseInt(globalTotals.total_active) || 0,
+          inactive: parseInt(globalTotals.total_inactive) || 0,
+        },
       },
     };
   }
-
 
   async update(id: number, updateUserDto: UpdateUserDto) {
     const userExists = await this.findById(id);
@@ -73,7 +123,8 @@ export class UsersService {
 
     if (updateUserDto.email) {
       const emailExists = await this.findByEmail(updateUserDto.email);
-      if (emailExists && emailExists.userId !== id) throw new ConflictException('Ya existe un usuario con ese correo electrónico');
+      if (emailExists && emailExists.userId !== id)
+        throw new ConflictException('Ya existe un usuario con ese correo electrónico');
     }
 
     if (updateUserDto.password) {
@@ -84,7 +135,6 @@ export class UsersService {
     return await this.userRepository.save(updateUser);
   }
 
-  
   async remove(id: number) {
     const userExists = await this.findById(id);
     if (!userExists) throw new NotFoundException('Usuario no encontrado');

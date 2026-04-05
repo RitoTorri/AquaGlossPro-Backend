@@ -8,8 +8,9 @@ import {
   Delete,
   ParseIntPipe,
   Query,
-  NotFoundException,
   HttpCode,
+  HttpException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { VehiclesService } from './vehicles.service';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
@@ -25,40 +26,69 @@ export class VehiclesController {
   @Post()
   @HttpCode(201)
   async create(@Body() createVehicleDto: CreateVehicleDto) {
-    const vehicle = await this.vehiclesService.create(createVehicleDto);
-    return { message: 'Vehiculo creado exitosamente.', data: vehicle };
+    try {
+      const vehicle = await this.vehiclesService.create(createVehicleDto);
+      return { message: 'Vehiculo creado exitosamente.', data: vehicle };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @Docs.ApiFindVehiclesDoc()
   @Get()
   @HttpCode(200)
   async findAll(@Query() paginationDto: PaginationDto) {
-    const result = await this.vehiclesService.findAll(paginationDto);
-    if (result.meta.totalItems === 0) throw new NotFoundException('No hay vehiculos disponibles');
-    return { message: 'Listado de vehiculos exitoso.', data: result };
+    try {
+      const result = await this.vehiclesService.findAll(paginationDto);
+      return { message: 'Listado de vehiculos exitoso.', data: result };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @Docs.ApiUpdateVehicleDoc()
   @Patch(':id')
   @HttpCode(204)
   async update(@Param('id') id: string, @Body() updateVehicleDto: UpdateVehicleDto) {
-    await this.vehiclesService.update(+id, updateVehicleDto);
-    return;
+    try {
+      await this.vehiclesService.update(+id, updateVehicleDto);
+      return;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @Docs.ApiRestoreVehicleDoc()
   @Patch('restore/:id')
   @HttpCode(204)
   async restore(@Param('id', ParseIntPipe) id: string) {
-    await this.vehiclesService.restore(+id);
-    return;
+    try {
+      await this.vehiclesService.restore(+id);
+      return;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @Docs.ApiRemoveVehicleDoc()
   @Delete(':id')
   @HttpCode(204)
   async remove(@Param('id', ParseIntPipe) id: string) {
-    await this.vehiclesService.remove(+id);
-    return;
+    try {
+      await this.vehiclesService.remove(+id);
+      return;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 }

@@ -9,6 +9,8 @@ import {
   ParseIntPipe,
   Query,
   HttpCode,
+  HttpException,
+  InternalServerErrorException,
   // UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
@@ -27,8 +29,14 @@ export class UsersController {
   @Post()
   @HttpCode(201)
   async create(@Body() createUserDto: CreateUserDto) {
-    const user = await this.usersService.create(createUserDto);
-    return { message: 'Usuario creado exitosamente', data: user };
+    try {
+      const user = await this.usersService.create(createUserDto);
+      return { message: 'Usuario creado exitosamente', data: user };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @Docs.findAllUsers()
@@ -36,10 +44,14 @@ export class UsersController {
   @Get()
   @HttpCode(200)
   async findAll(@Query() paginationDto: PaginationDto) {
-    const { active, page = 1, limit = 10, param = '' } = paginationDto;
-    const users = await this.usersService.findAll(active, page, limit, param);
-    if (users.data.length === 0) throw new Error('No hay usuarios registrados');
-    return { message: 'Listado de usuarios exitoso', data: users };
+    try {
+      const users = await this.usersService.findAll(paginationDto);
+      return { message: 'Listado de usuarios exitoso', data: users };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @Docs.updateUser()
@@ -47,8 +59,14 @@ export class UsersController {
   @Patch(':id')
   @HttpCode(204)
   async update(@Param('id', ParseIntPipe) id: string, @Body() updateUserDto: UpdateUserDto) {
-    await this.usersService.update(+id, updateUserDto);
-    return;
+    try {
+      await this.usersService.update(+id, updateUserDto);
+      return;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @Docs.restoreUser()
@@ -56,8 +74,14 @@ export class UsersController {
   @Patch('restore/:id')
   @HttpCode(204)
   async restore(@Param('id', ParseIntPipe) id: string) {
-    await this.usersService.restore(+id);
-    return;
+    try {
+      await this.usersService.restore(+id);
+      return;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @Docs.deleteUser()
@@ -65,7 +89,13 @@ export class UsersController {
   @Delete(':id')
   @HttpCode(204)
   async remove(@Param('id', ParseIntPipe) id: string) {
-    await this.usersService.remove(+id);
-    return;
+    try {
+      await this.usersService.remove(+id);
+      return;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 }

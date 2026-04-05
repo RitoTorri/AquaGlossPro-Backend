@@ -11,6 +11,8 @@ import {
   NotFoundException,
   ParseIntPipe,
   UseGuards,
+  InternalServerErrorException,
+  HttpException,
 } from '@nestjs/common';
 import { SuppliersService } from './suppliers.service';
 import { CreateSupplierDto } from './dto/create-supplier.dto';
@@ -33,11 +35,18 @@ export class SuppliersController {
   @Post()
   @HttpCode(201)
   async create(@Body() createSupplierDto: CreateSupplierDto) {
-    const supplierCreated = await this.suppliersService.create(createSupplierDto);
-    return {
-      data: supplierCreated,
-      message: 'Proveedor creado exitosamente',
-    };
+    try {
+      const supplierCreated = await this.suppliersService.create(createSupplierDto);
+      return {
+        data: supplierCreated,
+        message: 'Proveedor creado exitosamente',
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+
+      console.error(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @Docs.findAllSuppliers()
@@ -46,14 +55,18 @@ export class SuppliersController {
   @Get()
   @HttpCode(200)
   async findAll(@Query() paginationDto: PaginationDto) {
-    const { active = 'true', page = 1, limit = 10, param = '' } = paginationDto;
+    try {
+      const suppliers = await this.suppliersService.findAll(paginationDto);
+      return {
+        data: suppliers,
+        message: 'Listado de proveedores exitoso',
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
 
-    const suppliers = await this.suppliersService.findAll(active, page, limit, param);
-    if (suppliers.data.length === 0) throw new NotFoundException('No hay proveedores registrados');
-    return {
-      data: suppliers,
-      message: 'Listado de proveedores exitoso',
-    };
+      console.error(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @Docs.updateSupplier()
@@ -62,8 +75,15 @@ export class SuppliersController {
   @Patch(':id')
   @HttpCode(204)
   async update(@Param('id', ParseIntPipe) id: string, @Body() updateSupplierDto: UpdateSupplierDto) {
-    await this.suppliersService.update(+id, updateSupplierDto);
-    return;
+    try {
+      await this.suppliersService.update(+id, updateSupplierDto);
+      return;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+
+      console.error(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @Docs.restoreSupplier()
@@ -72,8 +92,15 @@ export class SuppliersController {
   @Patch('restore/:id')
   @HttpCode(204)
   async restore(@Param('id', ParseIntPipe) id: string) {
-    await this.suppliersService.restore(+id);
-    return;
+    try {
+      await this.suppliersService.restore(+id);
+      return;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+
+      console.error(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @Docs.deleteSupplier()
@@ -82,7 +109,14 @@ export class SuppliersController {
   @Delete(':id')
   @HttpCode(204)
   async remove(@Param('id', ParseIntPipe) id: string) {
-    await this.suppliersService.remove(+id);
-    return;
+    try {
+      await this.suppliersService.remove(+id);
+      return;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+
+      console.error(error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
 }

@@ -6,6 +6,7 @@ import { CategoriesService } from '../categories/categories.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { typeCategories } from '../../shared/enums/types.categories.enums';
+import { PaginationDto } from '../../shared/dto/pagination.dto';
 
 @Injectable()
 export class ServicesService {
@@ -13,26 +14,22 @@ export class ServicesService {
     @InjectRepository(Service)
     private readonly serviceRepository: Repository<Service>,
     private readonly categoriesService: CategoriesService,
-  ) { }
+  ) {}
 
   async create(createServiceDto: CreateServiceDto) {
-    // Validar nombre único
     const serviceExists = await this.findByName(createServiceDto.name);
     if (serviceExists) throw new ConflictException('Ya existe un servicio con ese nombre. Por favor, cambie el nombre');
 
-    // Validar que la categoría exista
-   const categoryExists = await this.categoriesService.findById(createServiceDto.categoryId);
+    const categoryExists = await this.categoriesService.findById(createServiceDto.categoryId);
     if (!categoryExists) throw new NotFoundException('No se encontro una categoría con el ID proporcionado');
     if (!categoryExists.active) throw new ConflictException('Categoría está inactiva. No puede ser utilizada');
     if (categoryExists.type !== typeCategories.SERVICES) {
-        throw new ConflictException('La categoría seleccionada no es una de tipo servicios');
+      throw new ConflictException('La categoría seleccionada no es una de tipo servicios');
     }
 
     const newService = this.serviceRepository.create(createServiceDto);
     return await this.serviceRepository.save(newService);
   }
-
-
 
   async remove(id: number) {
     const serviceExists = await this.findById(id);
@@ -44,32 +41,30 @@ export class ServicesService {
     return await this.serviceRepository.save(serviceExists);
   }
 
-
   async update(id: number, updateServiceDto: UpdateServiceDto) {
-    // Buscamos por id para verfiicar que este activo y exista
     const serviceExists = await this.findById(id);
     if (!serviceExists) throw new NotFoundException('No se encontro un servicio con el ID proporcionado');
     if (!serviceExists.active) throw new ConflictException('Servicio está inactivo. No puede ser actualizado');
 
-    // Verficamos que el nombre que se va a actualizar no exista
     if (updateServiceDto.name) {
-      const serviceExists = await this.findByName(updateServiceDto.name);
-      if (serviceExists) throw new ConflictException('Ya existe un servicio con ese nombre. Por favor, use otro nombre.');
+      const serviceExistsByName = await this.findByName(updateServiceDto.name);
+      if (serviceExistsByName && serviceExistsByName.serviceId !== id) {
+        throw new ConflictException('Ya existe un servicio con ese nombre. Por favor, use otro nombre.');
+      }
     }
 
-    // Validamos que la categoría que se va a actualizar exista
     if (updateServiceDto.categoryId) {
       const categoryExists = await this.categoriesService.findById(updateServiceDto.categoryId);
       if (!categoryExists) throw new NotFoundException('No se encontro una categoría con el ID proporcionado');
       if (!categoryExists.active) throw new ConflictException('Categoría está inactiva. No puede ser utilizada');
-      if (categoryExists.type !== typeCategories.SERVICES) throw new ConflictException('La categoría seleccionada no es una de tipo servicios');
+      if (categoryExists.type !== typeCategories.SERVICES) {
+        throw new ConflictException('La categoría seleccionada no es una de tipo servicios');
+      }
     }
 
-    // Actualizamos el servicio
-    const updateService = await this.serviceRepository.merge(serviceExists, updateServiceDto);
+    const updateService = this.serviceRepository.merge(serviceExists, updateServiceDto);
     return await this.serviceRepository.save(updateService);
   }
-
 
   async restore(id: number) {
     const serviceExists = await this.findById(id);
@@ -79,12 +74,16 @@ export class ServicesService {
     return await this.serviceRepository.update(id, { active: true, deletedAt: null });
   }
 
-
-  async findAll(active: boolean, page: number, limit: number, param: string | null) {
-    const [services, total] = await this.serviceRepository.findAndCount({
-      where: { active: active, name: ILike(`%${param?.toLowerCase()}%`) },
+  async findAll(paginationDto: PaginationDto) {
+    const { active, page, limit, param } = paginationDto;
+    const where = param
+      ? { active, name: ILike(`%${param.toUpperCase()}%`) }
+      : { active };
+    const [data, total] = await this.serviceRepository.findAndCount({
+      where,
       take: limit,
       skip: (page - 1) * limit,
+      relations: ['category'],
       select: {
         serviceId: true,
         name: true,
@@ -95,26 +94,30 @@ export class ServicesService {
           name: true,
           type: true,
           active: true,
-        }
+        },
       },
-      relations: ['category'],
       order: { serviceId: 'ASC' },
       withDeleted: true,
     });
 
+    // Calcular conteos adicionales
+    const activeCount = await this.serviceRepository.count({ where: { active: true } });
+    const inactiveCount = await this.serviceRepository.count({ where: { active: false } });
+
     return {
-      data: services,
+      data,
       meta: {
         totalItems: total,
-        itemCount: services.length,
+        itemCount: data.length,
         itemsPerPage: limit,
         totalPages: Math.ceil(total / limit),
         currentPage: page,
+        activeCount,
+        inactiveCount,
       },
     };
   }
 
-  // Ayudadores de busqueda
   async findById(id: number) {
     return await this.serviceRepository.findOne({
       where: { serviceId: id },

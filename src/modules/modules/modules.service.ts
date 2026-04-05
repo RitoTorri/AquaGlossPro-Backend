@@ -5,6 +5,7 @@ import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
 import { Modul } from './entities/module.entity';
 import { PermissionsService } from '../permissions/permissions.service';
+import { PaginationDto } from '../../shared/dto/pagination.dto';
 
 @Injectable()
 export class ModulesService {
@@ -12,33 +13,84 @@ export class ModulesService {
     @InjectRepository(Modul)
     private readonly moduleRespository: Repository<Modul>,
     private readonly permissionsService: PermissionsService,
-  ) { }
+  ) {}
 
   async create(createModuleDto: CreateModuleDto) {
     try {
       const moduleExists = await this.findByName(createModuleDto.name);
-      if (moduleExists !== null) throw new ConflictException('Ya existe un módulo con ese nombre. Por favor, elija otro');
+      if (moduleExists !== null)
+        throw new ConflictException('Ya existe un módulo con ese nombre. Por favor, elija otro');
 
       const newModule = this.moduleRespository.create(createModuleDto);
       const moduleSaved = await this.moduleRespository.save(newModule);
 
       const permissionsCreated = await this.permissionsService.create(moduleSaved.moduleId);
       return { ...moduleSaved, permissions_created: permissionsCreated.length };
-    } catch (error) { throw error; }
+    } catch (error) {
+      throw error;
+    }
   }
 
+  async findAll(paginationDto: PaginationDto) {
+    const { page, limit, active, param } = paginationDto;
+    const offset = (page - 1) * limit;
 
-  async findAll(active: boolean): Promise<Modul[]> {
-    try {
-      return await this.moduleRespository.find({
-        select: ['moduleId', 'name', 'active', 'createdAt'],
-        order: { moduleId: 'ASC' },
-        where: { active: active },
-        withDeleted: true,
-      });
-    } catch (error) { throw error; }
+    // 1. Obtener totales globales (sin paginación)
+    const totalsQuery = `
+        SELECT 
+            COUNT(*) AS total_items,
+            COUNT(*) FILTER(WHERE active = true) AS total_items_active,
+            COUNT(*) FILTER(WHERE active = false) AS total_items_inactive
+        FROM modules
+    `;
+    const totalsResult = await this.moduleRespository.query(totalsQuery);
+    const totals = totalsResult[0] || { total_items: 0, total_items_active: 0, total_items_inactive: 0 };
+
+    // 2. Obtener datos paginados con filtros
+    const parameters: any[] = [limit, offset, active];
+    let dataQuery = `
+        SELECT 
+            m."moduleId",
+            m.name,
+            m.active,
+            m."createdAt"
+        FROM modules m
+        WHERE m.active = $3
+        ORDER BY m."moduleId" ASC
+        LIMIT $1 OFFSET $2
+    `;
+
+    // Si param existe, agregar condición de búsqueda por name
+    if (param && param.trim() !== '') {
+      dataQuery += ` AND (m.name ILIKE $4)`;
+      parameters.push(`%${param.toUpperCase()}%`);
+    }
+
+    const result = await this.moduleRespository.query(dataQuery, parameters);
+
+    const modules = result.map((row) => ({
+      moduleId: row.moduleId,
+      name: row.name,
+      active: row.active,
+      createdAt: row.createdAt,
+    }));
+
+    return {
+      data: modules,
+      meta: {
+        itemPerPage: limit,
+        currentPage: page,
+        totalPages: paginationDto.active
+          ? Math.ceil((parseInt(totals.total_items_active) || 0) / limit)
+          : Math.ceil((parseInt(totals.total_items_inactive) || 0) / limit),
+        totals: {
+          general: parseInt(totals.total_items) || 0,
+          active: parseInt(totals.total_items_active) || 0,
+          inactive: parseInt(totals.total_items_inactive) || 0,
+        },
+      },
+    };
   }
-
 
   async update(id: number, updateModuleDto: UpdateModuleDto) {
     try {
@@ -49,12 +101,14 @@ export class ModulesService {
 
       // Verficar que el nombre no exista en la DB
       const moduleWithSameName = await this.findByName(updateModuleDto.name as string);
-      if (moduleWithSameName !== null) throw new ConflictException('Ya existe un módulo con ese nombre. Por favor, elija otro');
+      if (moduleWithSameName !== null)
+        throw new ConflictException('Ya existe un módulo con ese nombre. Por favor, elija otro');
 
       return await this.moduleRespository.update(id, { ...updateModuleDto, updatedAt: new Date() });
-    } catch (error) { throw error; }
+    } catch (error) {
+      throw error;
+    }
   }
-
 
   async restore(id: number) {
     try {
@@ -63,9 +117,10 @@ export class ModulesService {
       if (moduleExists.active) throw new ConflictException('El módulo está activo. No puede ser restaurado');
 
       return await this.moduleRespository.update(id, { active: true, deletedAt: null });
-    } catch (error) { throw error; }
+    } catch (error) {
+      throw error;
+    }
   }
-
 
   async remove(id: number) {
     try {
@@ -76,9 +131,10 @@ export class ModulesService {
       moduleExists.active = false;
       moduleExists.deletedAt = new Date();
       return await this.moduleRespository.save(moduleExists);
-    } catch (error) { throw error; }
+    } catch (error) {
+      throw error;
+    }
   }
-
 
   async findByName(name: string) {
     try {
@@ -86,19 +142,22 @@ export class ModulesService {
         where: { name },
         select: ['moduleId', 'name', 'active'],
         order: { moduleId: 'ASC' },
-        withDeleted: true
+        withDeleted: true,
       });
-    } catch (error) { throw error; }
+    } catch (error) {
+      throw error;
+    }
   }
-
 
   async findById(id: number) {
     try {
       return await this.moduleRespository.findOne({
         where: { moduleId: id },
         select: ['moduleId', 'name', 'active'],
-        withDeleted: true
+        withDeleted: true,
       });
-    } catch (error) { throw error; }
+    } catch (error) {
+      throw error;
+    }
   }
 }

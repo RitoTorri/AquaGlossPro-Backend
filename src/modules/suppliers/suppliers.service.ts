@@ -4,6 +4,7 @@ import { ILike, Repository } from 'typeorm';
 import { Supplier } from './entities/supplier.entity';
 import { CreateSupplierDto } from './dto/create-supplier.dto';
 import { UpdateSupplierDto } from './dto/update-supplier.dto';
+import { PaginationDto } from '../../shared/dto/pagination.dto';
 
 @Injectable()
 export class SuppliersService {
@@ -13,20 +14,8 @@ export class SuppliersService {
   ) {}
 
   async create(createSupplierDto: CreateSupplierDto) {
-    // Validar que en la Db no exista un provedor con el email, telfono o cedula/rif
-    const isEmailAlreadyRegistered = await this.findByEmail(createSupplierDto.email);
-    if (isEmailAlreadyRegistered)
-      throw new ConflictException('Ya existe un proveedor con ese email. Por favor, cambie el email');
-
-    const isNumberPhoneAlreadyRegistered = await this.findByNumberPhone(createSupplierDto.numberPhone);
-    if (isNumberPhoneAlreadyRegistered)
-      throw new ConflictException(
-        'Ya existe un proveedor con ese numero de telefono. Por favor, cambie el numero de telefono',
-      );
-
-    const isCiAlreadyRegistered = await this.findByCi(createSupplierDto.ci);
-    if (isCiAlreadyRegistered)
-      throw new ConflictException('Ya existe un proveedor con ese cedula o rif. Por favor, cambie el cedula o rif');
+    // Validamos duplicados
+    await this.findDataDuplicate(createSupplierDto.ci, createSupplierDto.email, createSupplierDto.numberPhone);
 
     const newSupplier = this.supplierRepository.create(createSupplierDto);
     return await this.supplierRepository.save(newSupplier);
@@ -49,31 +38,8 @@ export class SuppliersService {
     if (!supplierExists) throw new NotFoundException('No se encontro un proveedor con el ID proporcionado');
     if (!supplierExists.active) throw new ConflictException('Proveedor está inactivo. No puede ser actualizado');
 
-    // Verficamos que el email que se va a actualizar no exista
-    if (updateSupplierDto.email) {
-      const isEmailAlreadyRegistered = await this.findByEmail(updateSupplierDto.email);
-      if (isEmailAlreadyRegistered && isEmailAlreadyRegistered.supplierId !== id) {
-        throw new ConflictException('Ya existe un proveedor con ese email. Por favor, use otro email.');
-      }
-    }
-
-    // VErficamos que el numero de telefono que se va a actualizar no exista
-    if (updateSupplierDto.numberPhone) {
-      const isNumberPhoneAlreadyRegistered = await this.findByNumberPhone(updateSupplierDto.numberPhone);
-      if (isNumberPhoneAlreadyRegistered && isNumberPhoneAlreadyRegistered.supplierId !== id) {
-        throw new ConflictException(
-          'Ya existe un proveedor con ese numero de telefono. Por favor, use otro numero de telefono.',
-        );
-      }
-    }
-
-    // Verficamos que el cedula o rif que se va a actualizar no exista
-    if (updateSupplierDto.ci) {
-      const isCiAlreadyRegistered = await this.findByCi(updateSupplierDto.ci);
-      if (isCiAlreadyRegistered && isCiAlreadyRegistered.supplierId !== id) {
-        throw new ConflictException('Ya existe un proveedor con ese cedula o rif. Por favor, use otro cedula o rif.');
-      }
-    }
+    // Validamos duplicados
+    await this.findDataDuplicate(updateSupplierDto.ci, updateSupplierDto.email, updateSupplierDto.numberPhone, id);
 
     // Actualizamos el proveedor
     const updateSupplier = await this.supplierRepository.merge(supplierExists, updateSupplierDto);
@@ -88,42 +54,91 @@ export class SuppliersService {
     return await this.supplierRepository.update(id, { active: true, deletedAt: null });
   }
 
-  async findAll(active: boolean, page: number, limit: number, param: string | '') {
-    const [suppliers, total] = await this.supplierRepository.findAndCount({
-      where: [
-        { active: active, names: ILike(`%${param?.toUpperCase()}%`) },
-        { active: active, lastnames: ILike(`%${param?.toUpperCase()}%`) },
-        { active: active, email: param?.toLowerCase() },
-        { active: active, numberPhone: param },
-        { active: active, ci: param?.toUpperCase() },
-      ],
-      take: limit,
-      skip: (page - 1) * limit,
-      select: {
-        supplierId: true,
-        names: true,
-        lastnames: true,
-        email: true,
-        numberPhone: true,
-        ci: true,
-        active: true,
-      },
-      order: { supplierId: 'ASC' },
-      withDeleted: true,
-    });
+  async findAll(paginationDto: PaginationDto) {
+    const { limit, page, active, param = null } = paginationDto;
+    const offset = (page - 1) * limit;
+
+    // Asegurar tipos correctos
+    const limitNum = Number(limit);
+    const offsetNum = Number(offset);
+    const activeBool = active === true || active === 'true';
+
+    // 1. Obtener totales globales
+    const totalsQuery = `
+        SELECT 
+            COUNT(*) AS total_general,
+            COUNT(*) FILTER(WHERE active = true) AS total_active,
+            COUNT(*) FILTER(WHERE active = false) AS total_inactive
+        FROM suppliers
+    `;
+    const totalsResult = await this.supplierRepository.query(totalsQuery);
+    const globalTotals = totalsResult[0];
+
+    // 2. Construir parámetros en el orden correcto
+    // $1 = limit, $2 = offset, $3 = active
+    const parameters: any[] = [limitNum, offsetNum, activeBool];
+
+    // Construir la condición WHERE base
+    let whereCondition = `s.active = $3`;
+
+    // Si param existe, buscar en múltiples campos
+    if (param && param.trim() !== '') {
+      whereCondition += ` AND (
+            s.names ILIKE $4 OR 
+            s.lastnames ILIKE $4 OR 
+            s.email ILIKE $4 OR 
+            s."numberPhone" ILIKE $4 OR 
+            s.ci ILIKE $4
+        )`;
+      parameters.push(`%${param.toUpperCase()}%`);
+    }
+
+    const dataQuery = `
+        SELECT 
+            s."supplierId",
+            s.names,
+            s.lastnames,
+            s.email,
+            s."numberPhone",
+            s.ci,
+            s.active
+        FROM suppliers s
+        WHERE ${whereCondition}
+        ORDER BY s."supplierId" ASC
+        LIMIT $1 OFFSET $2
+    `;
+
+    console.log('Parameters:', parameters);
+    console.log('Query:', dataQuery);
+
+    const result = await this.supplierRepository.query(dataQuery, parameters);
+
+    const suppliers = result.map((row) => ({
+      supplierId: row.supplierId,
+      names: row.names,
+      lastnames: row.lastnames,
+      email: row.email,
+      numberPhone: row.numberPhone,
+      ci: row.ci,
+      active: row.active,
+    }));
 
     return {
       data: suppliers,
       meta: {
-        totalItems: total,
-        itemCount: suppliers.length,
-        itemsPerPage: limit,
-        totalPages: Math.ceil(total / limit),
+        itemPerPage: limitNum,
         currentPage: page,
+        totalPages: paginationDto.active
+          ? Math.ceil((parseInt(globalTotals.total_active) || 0) / limitNum)
+          : Math.ceil((parseInt(globalTotals.total_inactive) || 0) / limitNum),
+        totals: {
+          general: parseInt(globalTotals.total_general) || 0,
+          active: parseInt(globalTotals.total_active) || 0,
+          inactive: parseInt(globalTotals.total_inactive) || 0,
+        },
       },
     };
   }
-
   // Ayudadores de busqueda
   async findById(id: number) {
     return await this.supplierRepository.findOne({
@@ -155,5 +170,45 @@ export class SuppliersService {
       select: ['supplierId', 'names', 'lastnames', 'email', 'numberPhone', 'ci', 'active'],
       withDeleted: true,
     });
+  }
+
+  async findDataDuplicate(
+    ci: string | null = null,
+    email: string | null = null,
+    numberPhone: string | null = null,
+    supplierIdExclude: number | null = null,
+  ) {
+    // Condiciones para buscar duplicados
+    const whereConditions: Array<{
+      ci?: string;
+      email?: string;
+      numberPhone?: string;
+      supplierIdExclude?: number;
+    }> = [];
+
+    // Agregamos las condiciones para buscar duplicados
+    if (ci) whereConditions.push({ ci });
+    if (email) whereConditions.push({ email });
+    if (numberPhone) whereConditions.push({ numberPhone });
+
+    // Buscamos el empleado
+    const suppliers = await this.supplierRepository.find({
+      where: whereConditions,
+      select: ['supplierId', 'names', 'lastnames', 'email', 'numberPhone', 'ci', 'active'],
+      withDeleted: true,
+    });
+
+    for (const supplier of suppliers) {
+      if (supplierIdExclude && supplier.supplierId === supplierIdExclude) continue;
+      if (ci && supplier.ci === ci) {
+        throw new ConflictException('Ya existe un proveedor con ese CI.');
+      }
+      if (email && supplier.email === email) {
+        throw new ConflictException('Ya existe un proveedor con ese email.');
+      }
+      if (numberPhone && numberPhone === supplier.numberPhone) {
+        throw new ConflictException('Ya existe un proveedor con ese número de teléfono.');
+      }
+    }
   }
 }

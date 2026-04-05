@@ -10,7 +10,7 @@ import {
   Query,
   HttpCode,
   InternalServerErrorException,
-  NotFoundException,
+  HttpException,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -30,6 +30,8 @@ export class ProductsController {
       const product = await this.productsService.create(createProductDto);
       return { message: 'Producto creado exitosamente', product };
     } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
       throw new InternalServerErrorException(error.mesagge);
     }
   }
@@ -39,15 +41,11 @@ export class ProductsController {
   @Get()
   async findAll(@Query() paginationDto: PaginationDto) {
     try {
-      const { active = true, page = 1, limit = 10, param = '' } = paginationDto;
-      const products = await this.productsService.findAll(active, page, limit, param);
-
-      if (!products) {
-        throw new NotFoundException('No se encontraron productos registrados');
-      }
-
+      const products = await this.productsService.findAll(paginationDto);
       return { message: 'Productos obtenidos exitosamente', products };
     } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
       throw new InternalServerErrorException(error.mesagge);
     }
   }
@@ -60,6 +58,8 @@ export class ProductsController {
       await this.productsService.update(+id, updateProductDto);
       return;
     } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
       throw new InternalServerErrorException(error.mesagge);
     }
   }
@@ -72,6 +72,8 @@ export class ProductsController {
       await this.productsService.restore(+id);
       return;
     } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
       throw new InternalServerErrorException(error.mesagge);
     }
   }
@@ -84,6 +86,8 @@ export class ProductsController {
       await this.productsService.remove(+id);
       return;
     } catch (error) {
+      if (error instanceof HttpException) throw error;
+      console.log(error);
       throw new InternalServerErrorException(error.mesagge);
     }
   }
