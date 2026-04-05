@@ -1,44 +1,48 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany, CreateDateColumn, UpdateDateColumn, DeleteDateColumn } from 'typeorm';
 import { Job } from '../../jobs/entities/job.entity';
+import { Commission } from '../../commissions/entities/commission.entity'; // Ajusta la ruta según tu estructura
 
 @Entity('employees')
 export class Employee {
     @PrimaryGeneratedColumn()
     employeeId: number;
 
-    @Column({ nullable: false })
+    @Column()
     jobId: number;
 
-    @Column({ nullable: false, length: 40 })
+    @Column({ length: 40 })
     names: string;
 
-    @Column({ nullable: false, length: 40 })
+    @Column({ length: 40 })
     lastnames: string;
 
-    @Column({ nullable: false, length: 40 })
+    @Column({ length: 40, unique: true })
     email: string;
 
-    @Column({ nullable: false, length: 25 })
+    @Column({ length: 25 })
     numberPhone: string;
 
-    @Column({ nullable: false, length: 15 })
+    @Column({ length: 15, unique: true })
     ci: string;
 
-    @Column({ nullable: false, default: true })
+    @Column({ default: true })
     active: boolean;
 
-    // Auditoria
     @CreateDateColumn({ type: 'timestamptz' })
     createdAt: Date;
 
-    @UpdateDateColumn({ type: 'timestamptz', default: null })
-    updatedAt: Date;
+    @UpdateDateColumn({ type: 'timestamptz', nullable: true })
+    updatedAt: Date | null;
 
-    @DeleteDateColumn({ type: 'timestamptz', default: null })
+    @DeleteDateColumn({ type: 'timestamptz', nullable: true })
     deletedAt: Date | null;
 
-    // Relaciones
-    @ManyToOne(() => Job, (job) => job.employee)
+    // Relación con Job
+    @ManyToOne(() => Job, (job) => job.employees)
     @JoinColumn({ name: 'jobId' })
     job: Job;
+
+    // Relación con Commission (un empleado puede tener muchas comisiones)
+    @OneToMany(() => Commission, (commission) => commission.employee)
+    commissions: Commission[];
 }

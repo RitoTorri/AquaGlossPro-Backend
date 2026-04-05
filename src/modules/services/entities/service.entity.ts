@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Category } from '../../categories/entities/category.entity';
+import { ServicesTypeVehicle } from '../../services-type-vehicle/entities/services-type-vehicle.entity';
 
 @Entity('services')
 export class Service {
@@ -30,4 +31,7 @@ export class Service {
     @ManyToOne(() => Category, (category) => category.services)
     @JoinColumn({ name: 'categoryId', referencedColumnName: 'categoryId', foreignKeyConstraintName: 'fk_service_category' })
     category: Category;
+
+    @OneToMany(() => ServicesTypeVehicle, (stv) => stv.service)
+    servicesTypeVehicle: ServicesTypeVehicle[];
 }

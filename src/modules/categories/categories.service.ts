@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Category } from './entities/category.entity';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -15,7 +15,6 @@ export class CategoriesService {
   ) {}
 
   async create(createCategoryDto: CreateCategoryDto) {
-    // Validamos que el nombre no esté repetido
     const category = await this.findByName(createCategoryDto.name, createCategoryDto.type);
     if (category) throw new ConflictException('Ya existe una categoría con este nombre para el tipo seleccionado');
 
@@ -24,61 +23,47 @@ export class CategoriesService {
   }
 
   async findAll(paginationDto: PaginationDto) {
-    const { limit, page, active, param } = paginationDto;
-    const offset = (page - 1) * limit;
+    const queryBuilder = this.categoryRepository.createQueryBuilder('category')
+      .select([
+        'category.categoryId',
+        'category.name',
+        'category.type',
+        'category.description',
+        'category.active',
+      ])
+      .withDeleted();
 
-    // 1. Obtener totales globales (sin paginación y sin filtro de active en el WHERE final)
-    const totalsQuery = `
-        SELECT 
-            COUNT(*) AS total_items,
-            COUNT(*) FILTER(WHERE active = true) AS total_items_active,
-            COUNT(*) FILTER(WHERE active = false) AS total_items_inactive
-        FROM categories
-    `;
-    const totalsResult = await this.categoryRepository.query(totalsQuery);
-    const totals = totalsResult[0] || { total_items: 0, total_items_active: 0, total_items_inactive: 0 };
-
-    // 2. Obtener datos paginados con filtros
-    const parameters: any[] = [limit, offset, active];
-    let dataQuery = `
-        SELECT 
-            c."categoryId",
-            c.name,
-            c.type,
-            c.description,
-            c.active
-        FROM categories c
-        WHERE c.active = $3
-        ORDER BY c."categoryId" ASC
-        LIMIT $1 OFFSET $2
-    `;
-
-    if (param && param.trim() !== '') {
-      dataQuery += ` AND (c.name ILIKE $4)`;
-      parameters.push(`%${param.toUpperCase()}%`);
+    if (paginationDto.active !== undefined) {
+      queryBuilder.andWhere('category.active = :active', { active: paginationDto.active });
     }
 
-    const result = await this.categoryRepository.query(dataQuery, parameters);
+    if (paginationDto.param) {
+      queryBuilder.andWhere(
+        '(category.name ILIKE :param OR category.type ILIKE :param)',
+        { param: `%${paginationDto.param.toLowerCase()}%` }
+      );
+    }
 
-    const categories = result.map((row) => ({
-      categoryId: row.categoryId,
-      name: row.name,
-      type: row.type,
-      description: row.description,
-      active: row.active,
-    }));
+    const [categories, total] = await queryBuilder
+      .take(paginationDto.limit)
+      .skip((paginationDto.page - 1) * paginationDto.limit)
+      .orderBy('category.categoryId', 'ASC')
+      .getManyAndCount();
+
+    // Calcular conteos adicionales
+    const activeCount = await this.categoryRepository.count({ where: { active: true } });
+    const inactiveCount = await this.categoryRepository.count({ where: { active: false } });
 
     return {
       data: categories,
       meta: {
-        itemPerPage: limit,
-        currentPage: page,
-        totalPages: Math.ceil((parseInt(totals.total_items) || 0) / limit),
-        totals: {
-          active: parseInt(totals.total_items_active) || 0,
-          inactive: parseInt(totals.total_items_inactive) || 0,
-          general: parseInt(totals.total_items) || 0,
-        },
+        totalItems: total,
+        itemCount: categories.length,
+        itemsPerPage: paginationDto.limit,
+        totalPages: Math.ceil(total / paginationDto.limit),
+        currentPage: paginationDto.page,
+        activeCount,
+        inactiveCount,
       },
     };
   }
@@ -99,7 +84,6 @@ export class CategoriesService {
     if (!isCategoryExistsById.active)
       throw new ConflictException('La categoria ya esta eliminada. No puede ser actualizada.');
 
-    // Validamos que el nombre no esté repetido para el tipo seleccionado
     if (updateCategoryDto.name) {
       const isNameCategoryAlreadyExists = await this.findByName(updateCategoryDto.name, isCategoryExistsById.type);
       if (isNameCategoryAlreadyExists)

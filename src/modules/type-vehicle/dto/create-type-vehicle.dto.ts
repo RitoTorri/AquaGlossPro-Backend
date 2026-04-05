@@ -3,12 +3,7 @@ import { IsString, IsNotEmpty, MinLength, MaxLength, Matches } from 'class-valid
 import { Transform } from 'class-transformer';
 
 export class CreateTypeVehicleDto {
-    @ApiProperty({
-        example: 'SEDAN',
-        description: 'Nombre del tipo de vehículo',
-        minLength: 3,
-        maxLength: 50,
-    })
+    @ApiProperty({ example: 'SEDAN', minLength: 3, maxLength: 50 })
     @IsString()
     @IsNotEmpty()
     @MinLength(3)

@@ -6,7 +6,7 @@ export class Job {
     @PrimaryGeneratedColumn()
     jobId: number;
 
-    @Column({ unique: true, length: 50 })
+    @Column({ length: 50, unique: true })
     name: string;
 
     @Column({ type: 'decimal', precision: 10, scale: 2, nullable: false })
@@ -24,7 +24,6 @@ export class Job {
     @DeleteDateColumn({ type: 'timestamptz', nullable: true })
     deletedAt: Date | null;
 
-    // Relaciones
     @OneToMany(() => Employee, (employee) => employee.job)
-    employee: Employee[];
+    employees: Employee[];
 }
