@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, Query, HttpCode, NotFoundException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  ParseIntPipe,
+  Query,
+  HttpCode,
+  NotFoundException,
+} from '@nestjs/common';
 import { CommissionsService } from './commissions.service';
 import { UpdateCommissionStatusDto } from './dto/update-commission-status.dto';
 import { PaginationDto } from '../../shared/dto/pagination.dto';
@@ -10,7 +22,10 @@ export class CommissionsController {
   constructor(private readonly commissionsService: CommissionsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Listar todas las comisiones', description: 'Filtra por nombre o cédula del empleado usando el parámetro "search".' })
+  @ApiOperation({
+    summary: 'Listar todas las comisiones',
+    description: 'Filtra por nombre o cédula del empleado usando el parámetro "search".',
+  })
   @ApiQuery({ name: 'search', required: false, description: 'Buscar por nombre o cédula del empleado' })
   @ApiResponse({ status: 200, description: 'Comisiones obtenidas' })
   @ApiResponse({ status: 404, description: 'No hay registros' })

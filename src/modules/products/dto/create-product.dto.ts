@@ -48,16 +48,6 @@ export class CreateProductDto {
     unitCostLiter: number;
 
     @ApiProperty({
-        example: 0,
-        description: 'Stock actual del producto',
-        minimum: 0,
-        default: 0,
-    })
-    @IsNumber()
-    @Min(0)
-    currentStock: number = 0;
-
-    @ApiProperty({
         example: 5,
         description: 'Stock mínimo permitido',
         minimum: 0,

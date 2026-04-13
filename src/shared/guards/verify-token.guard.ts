@@ -13,7 +13,7 @@ export class VerifyTokenGuard implements CanActivate {
 
     try {
       // Ahora sí funciona el await correctamente
-      const payload = await verifyToken(token, process.env.TOKEN_ACCESS || 'refresh_secret');
+      const payload = await verifyToken(token, process.env.TOKEN_ACCESS || 'token_secret');
       request['user'] = { id_user: payload.userId, id_role: payload.roleId };
       // console.log(request['user']);
       

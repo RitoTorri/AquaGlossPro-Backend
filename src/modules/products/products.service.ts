@@ -192,4 +192,26 @@ export class ProductsService {
       withDeleted: true,
     });
   }
+
+  async incrementStock(id: number, quantity: number) {
+    const product = await this.findById(id);
+
+    if (!product) throw new NotFoundException('No existe un producto con el ID proporcionado');
+    if (!product.active) throw new ConflictException('El producto no está activo. No puede ser modificado');
+
+    product.currentStock = Number(product.currentStock) + Number(quantity);
+    product.updatedAt = new Date();
+    console.log(product);
+    return await this.productsRepository.save(product);
+  }
+
+  async decrementStock(id: number, quantity: number) {
+    const product = await this.findById(id);
+
+    if (!product) throw new NotFoundException('No existe un producto con el ID proporcionado');
+    if (!product.active) throw new ConflictException('El producto no está activo. No puede ser modificado');
+
+    product.currentStock -= quantity;
+    return await this.productsRepository.save(product);
+  }
 }
