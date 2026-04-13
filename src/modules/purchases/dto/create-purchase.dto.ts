@@ -1,5 +1,5 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsInt, IsNotEmpty, ValidateNested } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsArray, IsInt, IsNotEmpty, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CreatePurchaseItemDto } from '../../purchases_items/dto/purchase_items.dto';
 
@@ -13,6 +13,11 @@ export class CreatePurchaseDto {
   @IsInt()
   @IsNotEmpty()
   paymentMethodId: number;
+
+  @ApiProperty({ description: 'Número de factura', example: 'FAC-2022-001' })
+  @IsString()
+  @IsNotEmpty()
+  invoiceNumber: string;
 
   @ApiProperty({
     type: [CreatePurchaseItemDto],

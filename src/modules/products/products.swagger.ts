@@ -21,7 +21,8 @@ function findAllProductsSwagger() {
   return applyDecorators(
     ApiOperation({
       summary: 'Obtener todos los productos',
-      description: 'Obtener todos los productos registrados en la base de datos',
+      description:
+        'Obtener todos los productos registrados en la base de datos. Puedes buscar productos por sus nombres o estados del stock: critico, normal o agotado, asignale ese valor a la variable param',
     }),
     ApiNoContentResponse({ description: 'Productos obtenidos exitosamente' }),
     ApiNotFoundResponse({ description: 'No se encontraron productos' }),

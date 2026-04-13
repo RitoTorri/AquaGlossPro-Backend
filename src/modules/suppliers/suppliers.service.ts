@@ -15,7 +15,7 @@ export class SuppliersService {
 
   async create(createSupplierDto: CreateSupplierDto) {
     // Validamos duplicados
-    await this.findDataDuplicate(createSupplierDto.ci, createSupplierDto.email, createSupplierDto.numberPhone);
+    await this.findDataDuplicate(createSupplierDto.rif, createSupplierDto.email, createSupplierDto.numberPhone);
 
     const newSupplier = this.supplierRepository.create(createSupplierDto);
     return await this.supplierRepository.save(newSupplier);
@@ -23,7 +23,7 @@ export class SuppliersService {
 
   async remove(id: number) {
     const supplierExists = await this.findById(id);
-    if (!supplierExists) throw new NotFoundException('No se encontro un proveedor con el ID proporcionado');
+    if (!supplierExists) throw new NotFoundException('No se encontro un proveedor con el ID proporrifonado');
     if (!supplierExists.active)
       throw new ConflictException('Proveedor está inactivo. No puede ser eliminado nuevamente');
 
@@ -35,11 +35,11 @@ export class SuppliersService {
   async update(id: number, updateSupplierDto: UpdateSupplierDto) {
     // Buscamos por id para verfiicar que este activo y exista
     const supplierExists = await this.findById(id);
-    if (!supplierExists) throw new NotFoundException('No se encontro un proveedor con el ID proporcionado');
+    if (!supplierExists) throw new NotFoundException('No se encontro un proveedor con el ID proporrifonado');
     if (!supplierExists.active) throw new ConflictException('Proveedor está inactivo. No puede ser actualizado');
 
     // Validamos duplicados
-    await this.findDataDuplicate(updateSupplierDto.ci, updateSupplierDto.email, updateSupplierDto.numberPhone, id);
+    await this.findDataDuplicate(updateSupplierDto.rif, updateSupplierDto.email, updateSupplierDto.numberPhone, id);
 
     // Actualizamos el proveedor
     const updateSupplier = await this.supplierRepository.merge(supplierExists, updateSupplierDto);
@@ -48,7 +48,7 @@ export class SuppliersService {
 
   async restore(id: number) {
     const supplierExists = await this.findById(id);
-    if (!supplierExists) throw new NotFoundException('No se encontro un proveedor con el ID proporcionado');
+    if (!supplierExists) throw new NotFoundException('No se encontro un proveedor con el ID proporrifonado');
     if (supplierExists.active) throw new ConflictException('Proveedor está activo. No puede ser restaurado');
 
     return await this.supplierRepository.update(id, { active: true, deletedAt: null });
@@ -78,7 +78,7 @@ export class SuppliersService {
     // $1 = limit, $2 = offset, $3 = active
     const parameters: any[] = [limitNum, offsetNum, activeBool];
 
-    // Construir la condición WHERE base
+    // Construir la condirifón WHERE base
     let whereCondition = `s.active = $3`;
 
     // Si param existe, buscar en múltiples campos
@@ -88,7 +88,7 @@ export class SuppliersService {
             s.lastnames ILIKE $4 OR 
             s.email ILIKE $4 OR 
             s."numberPhone" ILIKE $4 OR 
-            s.ci ILIKE $4
+            s.rif ILIKE $4
         )`;
       parameters.push(`%${param.toUpperCase()}%`);
     }
@@ -100,7 +100,7 @@ export class SuppliersService {
             s.lastnames,
             s.email,
             s."numberPhone",
-            s.ci,
+            s.rif,
             s.active
         FROM suppliers s
         WHERE ${whereCondition}
@@ -119,7 +119,7 @@ export class SuppliersService {
       lastnames: row.lastnames,
       email: row.email,
       numberPhone: row.numberPhone,
-      ci: row.ci,
+      rif: row.rif,
       active: row.active,
     }));
 
@@ -143,7 +143,7 @@ export class SuppliersService {
   async findById(id: number) {
     return await this.supplierRepository.findOne({
       where: { supplierId: id },
-      select: ['supplierId', 'names', 'lastnames', 'email', 'numberPhone', 'ci', 'active'],
+      select: ['supplierId', 'companyName', 'email', 'numberPhone', 'rif', 'active'],
       withDeleted: true,
     });
   }
@@ -151,7 +151,7 @@ export class SuppliersService {
   async findByEmail(email: string) {
     return await this.supplierRepository.findOne({
       where: { email: email },
-      select: ['supplierId', 'names', 'lastnames', 'email', 'numberPhone', 'ci', 'active'],
+      select: ['supplierId', 'companyName', 'email', 'numberPhone', 'rif', 'active'],
       withDeleted: true,
     });
   }
@@ -159,49 +159,49 @@ export class SuppliersService {
   async findByNumberPhone(numberPhone: string) {
     return await this.supplierRepository.findOne({
       where: { numberPhone: numberPhone },
-      select: ['supplierId', 'names', 'lastnames', 'email', 'numberPhone', 'ci', 'active'],
+      select: ['supplierId', 'companyName', 'email', 'numberPhone', 'rif', 'active'],
       withDeleted: true,
     });
   }
 
-  async findByCi(ci: string) {
+  async findByrif(rif: string) {
     return await this.supplierRepository.findOne({
-      where: { ci: ci },
-      select: ['supplierId', 'names', 'lastnames', 'email', 'numberPhone', 'ci', 'active'],
+      where: { rif: rif },
+      select: ['supplierId', 'companyName', 'email', 'numberPhone', 'rif', 'active'],
       withDeleted: true,
     });
   }
 
   async findDataDuplicate(
-    ci: string | null = null,
+    rif: string | null = null,
     email: string | null = null,
     numberPhone: string | null = null,
     supplierIdExclude: number | null = null,
   ) {
-    // Condiciones para buscar duplicados
+    // Condirifones para buscar duplicados
     const whereConditions: Array<{
-      ci?: string;
+      rif?: string;
       email?: string;
       numberPhone?: string;
       supplierIdExclude?: number;
     }> = [];
 
-    // Agregamos las condiciones para buscar duplicados
-    if (ci) whereConditions.push({ ci });
+    // Agregamos las condirifones para buscar duplicados
+    if (rif) whereConditions.push({ rif });
     if (email) whereConditions.push({ email });
     if (numberPhone) whereConditions.push({ numberPhone });
 
     // Buscamos el empleado
     const suppliers = await this.supplierRepository.find({
       where: whereConditions,
-      select: ['supplierId', 'names', 'lastnames', 'email', 'numberPhone', 'ci', 'active'],
+      select: ['supplierId', 'companyName', 'email', 'numberPhone', 'rif', 'active'],
       withDeleted: true,
     });
 
     for (const supplier of suppliers) {
       if (supplierIdExclude && supplier.supplierId === supplierIdExclude) continue;
-      if (ci && supplier.ci === ci) {
-        throw new ConflictException('Ya existe un proveedor con ese CI.');
+      if (rif && supplier.rif === rif) {
+        throw new ConflictException('Ya existe un proveedor con ese rif.');
       }
       if (email && supplier.email === email) {
         throw new ConflictException('Ya existe un proveedor con ese email.');

@@ -77,7 +77,6 @@ export class PurchasesService {
       const newPurchase = this.purchaseRepository.create({
         ...createPurchaseDto,
         totalAmount: totalPurchaseAmount,
-        invoiceNumber: `FAC-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000)}`,
         items: purchaseItems,
       });
 
@@ -132,31 +131,23 @@ export class PurchasesService {
         purchaseId: true,
         invoiceNumber: true,
         purchaseStatus: true,
-        purchaseDate: true,
         totalAmount: true,
+        purchaseDate: true,
+        paymentMethod: {
+          name: true,
+        },
         supplier: {
-          supplierId: true,
-          names: true,
-          lastnames: true,
-          ci: true,
+          companyName: true,
+          rif: true,
           email: true,
           numberPhone: true,
-          active: true,
-        },
-        paymentMethod: {
-          paymentMethodId: true,
-          name: true,
-          active: true,
         },
         items: {
-          purchaseItemId: true,
           quantity: true,
           unitPrice: true,
           subtotal: true,
           product: {
-            productId: true,
             name: true,
-            active: true,
           },
         },
       },
@@ -184,18 +175,6 @@ export class PurchasesService {
       throw new ConflictException('Solo las compras con status PENDING pueden ser actualizadas');
     }
 
-    // Actualizar precio: costo + porcentaje
-    let percentage = Number(process.env.PORCENTAGE_AUMENT_FOR_PURCHASE); // Este es un numero entero
-
-    // Validamos que sea numero entero positivo
-    if (isNaN(percentage)) {
-      throw new ConflictException('La variable de entorno PORCENTAGE_AUMENT_FOR_PURCHASE no es un número válido');
-    }
-
-    if (percentage <= 0) {
-      throw new ConflictException(`El porcentaje debe ser mayor a 0. Valor actual: ${percentage}`);
-    }
-
     return await this.purchaseRepository.manager.transaction(async (manager) => {
       if (updatePurchaseDto.status === StatusPayments.PAID) {
         // Busca los productos de la venta
@@ -208,11 +187,8 @@ export class PurchasesService {
           // Incrementar stock
           // await this.productsService.incrementStock(item.productId, Number(item.quantity));
 
-          const newPrice = (Number(item.unitPrice) + (Number(item.unitPrice) * percentage) / 100).toFixed(2);
-          console.log('Precio nuevo: ' + newPrice);
-
           await manager.update(Product, item.productId, {
-            unitCostLiter: Number(newPrice),
+            unitCostLiter: Number(item.unitPrice),
             currentStock: Number(item.product.currentStock) + Number(item.quantity),
             updatedAt: new Date(),
           });

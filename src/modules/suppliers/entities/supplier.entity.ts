@@ -15,10 +15,7 @@ export class Supplier {
   supplierId: number;
 
   @Column({ nullable: false, length: 40 })
-  names: string;
-
-  @Column({ nullable: false, length: 40 })
-  lastnames: string;
+  companyName: string;
 
   @Column({ nullable: false, length: 50 })
   email: string;
@@ -27,7 +24,7 @@ export class Supplier {
   numberPhone: string;
 
   @Column({ nullable: false, length: 20 })
-  ci: string;
+  rif: string;
 
   @Column({ nullable: false, default: true })
   active: boolean;

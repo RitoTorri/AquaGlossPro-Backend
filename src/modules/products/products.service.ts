@@ -49,7 +49,9 @@ export class ProductsService {
         SELECT 
             COUNT(*) AS total_general,
             COUNT(*) FILTER(WHERE active = true) AS total_active,
-            COUNT(*) FILTER(WHERE active = false) AS total_inactive
+            COUNT(*) FILTER(WHERE active = false) AS total_inactive,
+            COUNT(*) FILTER(WHERE "currentStock" = 0) AS total_soldOut,
+            COUNT(*) FILTER(WHERE "currentStock" <= "minStock") AS total_critical
         FROM products
     `;
     const totalsResult = await this.productsRepository.query(totalsQuery);
@@ -61,14 +63,23 @@ export class ProductsService {
 
     // Construir la condición WHERE base
     let whereCondition = `p.active = $3`;
+    let whereConditionSubquery = '';
 
     // Si hay param, agregar condición de búsqueda
     if (param && param.trim() !== '') {
-      whereCondition += ` AND (p.name ILIKE $4)`;
-      parameters.push(`%${param.toUpperCase()}%`);
+      const statusStock = ['AGOTADO', 'CRITICO', 'NORMAL'];
+
+      if (statusStock.includes(param.toUpperCase())) {
+        whereConditionSubquery += `WHERE "stockStatus" = $4`;
+        parameters.push(param.toUpperCase());
+      } else {
+        whereCondition += ` AND p.name ILIKE $4`;
+        parameters.push(`%${param.toUpperCase()}%`);
+      }
     }
 
     const dataQuery = `
+      SELECT * FROM (
         SELECT 
             p."productId",
             p.name,
@@ -76,19 +87,23 @@ export class ProductsService {
             p."currentStock",
             p."minStock",
             p."unitType",
-            p.active,
-            p."createdAt",
+            CASE 
+              WHEN p."currentStock" = 0 THEN 'AGOTADO'
+              WHEN p."currentStock" <= p."minStock" THEN 'CRITICO'
+              ELSE 'NORMAL'
+            END AS "stockStatus",
             json_build_object(
                 'categoryId', c."categoryId",
                 'name', c.name,
-                'type', c.type,
-                'active', c.active
+                'type', c.type
             ) AS category
         FROM products p
         INNER JOIN categories c ON p."categoryId" = c."categoryId"
         WHERE ${whereCondition}
         ORDER BY p."productId" ASC
-        LIMIT $1 OFFSET $2
+      ) AS subconsulta
+      ${whereConditionSubquery}
+      LIMIT $1 OFFSET $2
     `;
 
     const result = await this.productsRepository.query(dataQuery, parameters);
@@ -101,8 +116,8 @@ export class ProductsService {
       minStock: parseInt(row.minStock),
       unitType: row.unitType,
       active: row.active,
-      createdAt: row.createdAt,
       category: row.category,
+      stockStatus: row.stockStatus,
     }));
 
     return {
@@ -117,6 +132,8 @@ export class ProductsService {
           general: parseInt(globalTotals.total_general) || 0,
           active: parseInt(globalTotals.total_active) || 0,
           inactive: parseInt(globalTotals.total_inactive) || 0,
+          soldOut: parseInt(globalTotals.total_soldOut) || 0,
+          critical: parseInt(globalTotals.total_critical) || 0,
         },
       },
     };
