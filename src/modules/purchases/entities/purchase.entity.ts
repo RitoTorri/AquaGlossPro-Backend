@@ -45,7 +45,7 @@ export class Purchase {
   })
   purchaseDate: Date;
 
-  @Column({ length: 50, nullable: true })
+  @Column({ length: 50, nullable: true, unique: true })
   invoiceNumber: string;
 
   @Column({

@@ -117,7 +117,8 @@ export class PurchasesService {
       ];
     }
 
-    console.log(whereCondition);
+    const query = `SELECT COALESCE(SUM("totalAmount"), 0) FROM purchases WHERE "purchaseStatus" = 'P'`;
+    const investedCapitalResult = await this.purchaseRepository.query(query);
 
     // 2. Ejecución de la consulta con OR anidado
     const [purchases, total] = await this.purchaseRepository.findAndCount({
@@ -155,7 +156,7 @@ export class PurchasesService {
 
     // 3. Estructura de respuesta que solicitaste
     return {
-      data: purchases,
+      data: { purchases, investedCapital: investedCapitalResult[0].coalesce },
       meta: {
         totalItems: total,
         itemCount: purchases.length,
@@ -177,27 +178,25 @@ export class PurchasesService {
 
     return await this.purchaseRepository.manager.transaction(async (manager) => {
       if (updatePurchaseDto.status === StatusPayments.PAID) {
-        // Busca los productos de la venta
+        // Busca los productos de la venta para modificar su stock y precio
         const purchaseItems = await manager.find(PurchaseItem, {
           where: { purchaseId: id },
           relations: ['product'],
         });
 
         for (const item of purchaseItems) {
-          // Incrementar stock
-          // await this.productsService.incrementStock(item.productId, Number(item.quantity));
-
           await manager.update(Product, item.productId, {
             unitCostLiter: Number(item.unitPrice),
             currentStock: Number(item.product.currentStock) + Number(item.quantity),
             updatedAt: new Date(),
           });
         }
-      } else {
-        purchaseExists.purchaseStatus = updatePurchaseDto.status;
-        purchaseExists.updatedAt = new Date();
-        return await manager.save(purchaseExists);
       }
+
+      return await manager.update(Purchase, id, {
+        purchaseStatus: updatePurchaseDto.status,
+        updatedAt: new Date(),
+      });
     });
   }
 
