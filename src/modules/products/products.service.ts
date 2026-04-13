@@ -51,7 +51,8 @@ export class ProductsService {
             COUNT(*) FILTER(WHERE active = true) AS total_active,
             COUNT(*) FILTER(WHERE active = false) AS total_inactive,
             COUNT(*) FILTER(WHERE "currentStock" = 0) AS total_soldOut,
-            COUNT(*) FILTER(WHERE "currentStock" <= "minStock") AS total_critical
+            COUNT(*) FILTER(WHERE "currentStock" <= "minStock") AS total_critical,
+            SUM("unitCostLiter" * "currentStock") FILTER(WHERE active = true) AS total_invested_capital
         FROM products
     `;
     const totalsResult = await this.productsRepository.query(totalsQuery);
@@ -134,6 +135,7 @@ export class ProductsService {
           inactive: parseInt(globalTotals.total_inactive) || 0,
           soldOut: parseInt(globalTotals.total_soldOut) || 0,
           critical: parseInt(globalTotals.total_critical) || 0,
+          investedCapital: parseFloat(globalTotals.total_invested_capital) || 0,
         },
       },
     };

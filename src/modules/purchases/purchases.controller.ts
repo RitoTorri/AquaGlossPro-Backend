@@ -46,7 +46,7 @@ export class PurchasesController {
   @HttpCode(200)
   async findAll(@Query() queryDateDto: QueryDateDto) {
     const result = await this.purchasesService.findAll(queryDateDto);
-    if (result.data.purchases.length === 0)
+    if (result.data.length === 0)
       throw new NotFoundException({
         data: result,
         message: 'Purchases not found',

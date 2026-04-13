@@ -117,9 +117,6 @@ export class PurchasesService {
       ];
     }
 
-    const query = `SELECT COALESCE(SUM("totalAmount"), 0) FROM purchases WHERE "purchaseStatus" = 'P'`;
-    const investedCapitalResult = await this.purchaseRepository.query(query);
-
     // 2. Ejecución de la consulta con OR anidado
     const [purchases, total] = await this.purchaseRepository.findAndCount({
       where: whereCondition,
@@ -156,7 +153,7 @@ export class PurchasesService {
 
     // 3. Estructura de respuesta que solicitaste
     return {
-      data: { purchases, investedCapital: investedCapitalResult[0].coalesce },
+      data: purchases,
       meta: {
         totalItems: total,
         itemCount: purchases.length,
