@@ -103,6 +103,9 @@ export class VehiclesService {
 
     const result = await this.vehiclesRepository.query(dataQuery, parameters);
 
+    console.log("resultado de la query: ");
+    console.log(result);
+
     // Agrupar vehículos por cliente
     const clientsMap = new Map();
 
@@ -125,7 +128,7 @@ export class VehiclesService {
         vehicleId: row.vehicleId,
         plate: row.plate,
         active: row.vehicle_active,
-        typeVehicle: row.typeVehicle,
+        typeVehicle: row.typevehicle,
       });
     });
 
