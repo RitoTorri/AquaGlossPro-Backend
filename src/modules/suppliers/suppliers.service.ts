@@ -84,8 +84,7 @@ export class SuppliersService {
     // Si param existe, buscar en múltiples campos
     if (param && param.trim() !== '') {
       whereCondition += ` AND (
-            s.names ILIKE $4 OR 
-            s.lastnames ILIKE $4 OR 
+            s."companyName" ILIKE $4 OR 
             s.email ILIKE $4 OR 
             s."numberPhone" ILIKE $4 OR 
             s.rif ILIKE $4
@@ -96,8 +95,7 @@ export class SuppliersService {
     const dataQuery = `
         SELECT 
             s."supplierId",
-            s.names,
-            s.lastnames,
+            s."companyName",
             s.email,
             s."numberPhone",
             s.rif,
@@ -115,8 +113,7 @@ export class SuppliersService {
 
     const suppliers = result.map((row) => ({
       supplierId: row.supplierId,
-      names: row.names,
-      lastnames: row.lastnames,
+      companyName: row.companyName,
       email: row.email,
       numberPhone: row.numberPhone,
       rif: row.rif,
