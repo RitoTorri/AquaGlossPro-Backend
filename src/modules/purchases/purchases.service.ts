@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike, Between } from 'typeorm';
+import { Repository, ILike, Between, In } from 'typeorm';
 import { Purchase } from './entities/purchase.entity';
 import { PurchaseItem } from '../purchases_items/entities/purchase_items.entity';
 import { CreatePurchaseDto } from './dto/create-purchase.dto';
@@ -38,6 +38,13 @@ export class PurchasesService {
     if (!paymentMethod || !paymentMethod.active) {
       throw new ConflictException('Método de pago no encontrado o inactivo');
     }
+
+    // Validamos que no exista una factura con el número de factura proporcionado
+    const invoiceNumber = await this.purchaseRepository.findOne({
+      where: { invoiceNumber: createPurchaseDto.invoiceNumber },
+      select: ['invoiceNumber'],
+    });
+    if (invoiceNumber) throw new ConflictException('Ya existe una factura con el número de factura proporcionado');
 
     // Iniciamos la transacción para asegurar atomicidad
     return await this.purchaseRepository.manager.transaction(async (transactionalEntityManager) => {
@@ -122,7 +129,7 @@ export class PurchasesService {
       where: whereCondition,
       take: limit,
       skip: (page - 1) * limit,
-      relations: ['supplier', 'paymentMethod', 'items.product'], // Relaciones necesarias
+      relations: ['supplier', 'paymentMethod'], // Relaciones necesarias
       order: { purchaseId: 'ASC' }, // Compras más recientes primero
       withDeleted: true,
       select: {
@@ -140,15 +147,27 @@ export class PurchasesService {
           email: true,
           numberPhone: true,
         },
-        items: {
-          quantity: true,
-          unitPrice: true,
-          subtotal: true,
-          product: {
-            name: true,
-          },
-        },
       },
+    });
+
+    const purchaseIds = purchases.map((purchase) => purchase.purchaseId);
+
+    const purchaseItems = await this.purchaseItemRepository.find({
+      where: { purchaseId: In(purchaseIds) },
+      relations: ['product'],
+      select: {
+        purchaseId: true,
+        quantity: true,
+        unitPrice: true,
+        subtotal: true,
+        product: { name: true },
+      },
+    });
+
+    purchases.forEach((purchase: any) => {
+      purchase.items = purchaseItems
+        .filter((item) => item.purchaseId === purchase.purchaseId)
+        .map(({ purchaseId, ...rest }) => rest);
     });
 
     // 3. Estructura de respuesta que solicitaste
