@@ -64,8 +64,7 @@ export class PaymentsMethodsService {
     const paymentMethods = result.map((row) => ({
       paymentMethodId: row.paymentMethodId,
       name: row.name,
-      active: row.active,
-      createdAt: row.createdAt,
+      active: row.active
     }));
 
     return {
