@@ -1,10 +1,10 @@
 #!/bin/bash
 
-echo "Configurando el entorno de Sistema de Ventas..."
+echo "Configurando el entorno de AquaGloss Pro..."
 
 # 1. Ejecutar el seeding de la base de datos
 echo "Poblando base de datos (Módulos y Roles)..."
-node dist/database/SCRIPTS/seed.scripts.js
+node /app/dist/database/SCRIPTS/seed.scripts.js
 
 # 2. Verificar si el comando anterior fue exitoso
 if [ $? -eq 0 ]; then
