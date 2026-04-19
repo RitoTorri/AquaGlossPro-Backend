@@ -39,11 +39,6 @@ export class VehiclesService {
     const { limit, page, active, param } = paginationDto;
     const offset = (page - 1) * limit;
 
-    // Asegurar tipos correctos
-    const limitNum = Number(limit);
-    const offsetNum = Number(offset);
-    const activeBool = active === true || active === 'true';
-
     // 1. Obtener totales globales de vehículos
     const totalsQuery = `
         SELECT 
@@ -55,93 +50,44 @@ export class VehiclesService {
     const totalsResult = await this.vehiclesRepository.query(totalsQuery);
     const globalTotals = totalsResult[0];
 
-    // 2. Construir parámetros en el orden correcto
-    // $1 = limit, $2 = offset, $3 = active
-    const parameters: any[] = [limitNum, offsetNum, activeBool];
-
-    // Construir la condición WHERE base
-    let whereCondition = `v.active = $3`;
-
-    // Si param existe, buscar en plate, owner.names o owner.lastnames
-    if (param && param.trim() !== '') {
-      whereCondition += ` AND (
-            v.plate ILIKE $4 OR 
-            c.names ILIKE $4 OR 
-            c.lastnames ILIKE $4
-        )`;
-      parameters.push(`%${param.toUpperCase()}%`);
-    }
-
-    const dataQuery = `
-        SELECT 
-            v."vehicleId",
-            v.plate,
-            v.active AS vehicle_active,
-            json_build_object(
-                'clientId', c."clientId",
-                'names', c.names,
-                'lastnames', c.lastnames,
-                'numberPhone', c."numberPhone",
-                'ci', c.ci,
-                'active', c.active
-            ) AS owner,
-            json_build_object(
-                'typeVehicleId', tv."typeVehicleId",
-                'name', tv.name,
-                'active', tv.active
-            ) AS typeVehicle
-        FROM vehicles v
-        INNER JOIN clients c ON v."ownerId" = c."clientId"
-        INNER JOIN types_vehicles tv ON v."typeVehicleId" = tv."typeVehicleId"
-        WHERE ${whereCondition}
-        ORDER BY v."vehicleId" ASC
-        LIMIT $1 OFFSET $2
-    `;
-
-    console.log('Parameters:', parameters);
-    console.log('Query:', dataQuery);
-
-    const result = await this.vehiclesRepository.query(dataQuery, parameters);
-
-    console.log("resultado de la query: ");
-    console.log(result);
-
-    // Agrupar vehículos por cliente
-    const clientsMap = new Map();
-
-    result.forEach((row) => {
-      const clientId = row.owner.clientId;
-
-      if (!clientsMap.has(clientId)) {
-        clientsMap.set(clientId, {
-          clientId: row.owner.clientId,
-          names: row.owner.names,
-          lastnames: row.owner.lastnames,
-          numberPhone: row.owner.numberPhone,
-          ci: row.owner.ci,
-          active: row.owner.active,
-          vehicles: [],
-        });
-      }
-
-      clientsMap.get(clientId).vehicles.push({
-        vehicleId: row.vehicleId,
-        plate: row.plate,
-        active: row.vehicle_active,
-        typeVehicle: row.typevehicle,
-      });
+    const vehicles = await this.vehiclesRepository.find({
+      where: [
+        { active, plate: param },
+        { active, owner: { names: ILike(`%${param}%`) } },
+        { active, owner: { lastnames: ILike(`%${param}%`) } },
+        { active, owner: { ci: param } },
+      ],
+      select: {
+        vehicleId: true,
+        plate: true,
+        active: true,
+        owner: {
+          clientId: true,
+          names: true,
+          lastnames: true,
+          numberPhone: true,
+          ci: true,
+        },
+        typeVehicle: {
+          typeVehicleId: true,
+          name: true,
+        },
+      },
+      take: limit,
+      skip : offset,
+      order: { vehicleId: 'ASC' },
+      relations: ['owner', 'typeVehicle'],
+      withDeleted: true,
     });
 
-    const clients = Array.from(clientsMap.values());
-
     return {
-      data: clients,
+      data: vehicles,
       meta: {
-        itemPerPage: limitNum,
+        itemPerPage: limit,
         currentPage: page,
         totalPages: paginationDto.active
-          ? Math.ceil((parseInt(globalTotals.total_active) || 0) / limitNum)
-          : Math.ceil((parseInt(globalTotals.total_inactive) || 0) / limitNum),
+          ? Math.ceil((parseInt(globalTotals.total_active) || 0) / limit)
+          : Math.ceil((parseInt(globalTotals.total_inactive) || 0) / limit),
         totals: {
           general: parseInt(globalTotals.total_general) || 0,
           active: parseInt(globalTotals.total_active) || 0,
