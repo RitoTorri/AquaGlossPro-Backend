@@ -56,7 +56,7 @@ export class ClientsService {
 
   async findClients(paginationDto: PaginationDto) {
     const { limit, page, active, param } = paginationDto;
-    const offset = (page - 1) * limit;
+    const offset : number = (page - 1) * limit;
 
     // 1. Obtener totales globales (sin paginación y sin filtro de active en el WHERE final)
     const totalsQuery = `
@@ -82,8 +82,6 @@ export class ClientsService {
             c.active
         FROM clients c
         WHERE c.active = $3
-        ORDER BY c."clientId" ASC
-        LIMIT $1 OFFSET $2
     `;
 
     // Si param existe, agregar condición de búsqueda
@@ -91,6 +89,10 @@ export class ClientsService {
       dataQuery += ` AND (c.ci ILIKE $4 OR c.names ILIKE $4 OR c.lastnames ILIKE $4)`;
       parameters.push(`%${param.toUpperCase()}%`);
     }
+
+    dataQuery += `  ORDER BY c."clientId" ASC LIMIT $1 OFFSET $2`
+
+    console.log(parameters);
 
     const result = await this.clientsRepository.query(dataQuery, parameters);
 
