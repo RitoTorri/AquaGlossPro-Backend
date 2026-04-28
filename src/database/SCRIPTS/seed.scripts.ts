@@ -37,14 +37,20 @@ async function runSeed() {
     const tableModules = [
       'CATEGORIES',
       'CLIENTS',
+      'COMBOS',
+      'COMISSIONS',
       'EMPLOYEES',
       'JOBS',
       'PAYMENT_METHODS',
       'PRODUCTS',
+      'PURCHASES',
+      'SALES',
       'SERVICES',
+      'SERVICES_TYPE_VEHICLE',
       'SUPPLIERS',
       'TYPE_VEHICLES',
       'VEHICLES',
+      'USERS'
     ];
     const actions = ['C', 'R', 'U', 'D'];
 

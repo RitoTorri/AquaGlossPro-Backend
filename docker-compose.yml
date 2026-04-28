@@ -2,21 +2,22 @@ services:
   db-aqua-gloss:
     image: postgres:17-alpine
     ports:
-      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
+      - '${POSTGRES_PORT}:${POSTGRES_PORT}'
     env_file:
       - .env
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
       interval: 5s
       timeout: 5s
       retries: 5
       start_period: 30s
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./src/database/SQL:/docker-entrypoint-initdb.d
   api-aqua-gloss:
     build: .
     ports:
-      - "${PORT}:${PORT}"
+      - '${PORT}:${PORT}'
     env_file:
       - .env
     depends_on:
