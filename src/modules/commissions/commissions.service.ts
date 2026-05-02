@@ -14,14 +14,15 @@ export class CommissionsService {
 
   async findAll(paginationDto: PaginationDto, search?: string) {
     const { limit = 10, page = 1, active } = paginationDto;
-    const query = this.repository.createQueryBuilder('commission')
+    const query = this.repository
+      .createQueryBuilder('commission')
       .leftJoinAndSelect('commission.employee', 'employee')
       .where('commission.active = :active', { active: active !== undefined ? active : true });
 
     if (search) {
       query.andWhere(
         '(employee.names ILIKE :search OR employee.lastnames ILIKE :search OR employee.ci ILIKE :search)',
-        { search: `%${search}%` }
+        { search: `%${search}%` },
       );
     }
 

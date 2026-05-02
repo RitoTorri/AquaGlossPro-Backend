@@ -16,7 +16,7 @@ function findAllPurchases() {
     return applyDecorators(
         ApiOperation({
             summary: 'Lista de compras',
-            description: 'Obtiene la lista de compras filtradas por fecha, proveedor, código de factura o cédula de proveedor.'
+            description: 'Obtiene la lista de compras filtradas por fecha, estado de la compra, numero de factura, nombre o rif del proveedor.'
         }),
         ApiOkResponse({ description: 'Compras obtenidas exitosamente' }),
         ApiNotFoundResponse({ description: 'No se encontraron compras' })

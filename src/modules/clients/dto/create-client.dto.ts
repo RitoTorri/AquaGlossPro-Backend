@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsString, Matches, MaxLength, MinLength, matches } from 'class-validator';
+import { IsNotEmpty, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
 export class CreateClientDto {
     @ApiProperty({
@@ -14,7 +14,7 @@ export class CreateClientDto {
     @IsNotEmpty()
     @MinLength(3)
     @MaxLength(40)
-    @Matches(/^[a-zA-Z\s]+$/, { message: 'Los nombres deben de contener solo letras y espacios' })
+    @Matches(/^[a-zA-Z\s\ñ\á\é\í\ó\ú]+$/, { message: 'Los nombres deben de contener solo letras y espacios' })
     @Transform(({ value }) => value.toUpperCase())
     names: string;
 
@@ -29,7 +29,7 @@ export class CreateClientDto {
     @IsNotEmpty()
     @MinLength(3)
     @MaxLength(40)
-    @Matches(/^[a-zA-Z\s]+$/, { message: 'Los apellidos deben de contener solo letras y espacios' })
+    @Matches(/^[a-zA-Z\s\ñ\á\é\í\ó\ú]+$/, { message: 'Los apellidos deben de contener solo letras y espacios' })
     @Transform(({ value }) => value.toUpperCase())
     lastnames: string;
 

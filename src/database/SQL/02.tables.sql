@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS products (
     "categoryId" INTEGER NOT NULL REFERENCES categories("categoryId"),
     "name" VARCHAR(100) NOT NULL,
     "unitType" type_unit NOT NULL DEFAULT 'L',
-    "unitCostLiter" DECIMAL(10, 2) NOT NULL,
+    "unitCostLiter" DECIMAL(10, 2) NOT NULL DEFAULT 0,
     "currentStock" DECIMAL(10, 2) NOT NULL DEFAULT 0,
     "minStock" DECIMAL(10, 2) NOT NULL DEFAULT 0,
     "active" BOOLEAN DEFAULT TRUE,
@@ -205,14 +205,14 @@ CREATE TABLE IF NOT EXISTS purchases (
     "paymentMethodId" INTEGER NOT NULL REFERENCES payments_methods("paymentMethodId"),
     "invoiceNumber" VARCHAR(30) UNIQUE NOT NULL,
     "totalAmount" DECIMAL(10, 2) NOT NULL,
-    "statusPurchase" status_payments NOT NULL DEFAULT 'W',
+    "purchaseStatus" status_payments NOT NULL DEFAULT 'W',
     "purchaseDate" TIMESTAMP NOT NULL DEFAULT NOW(),
     "createdAt" TIMESTAMP DEFAULT NOW(),
     "updatedAt" TIMESTAMP DEFAULT NULL,
     "deletedAt" TIMESTAMP DEFAULT NULL
 );
--- purchase_items
-CREATE TABLE IF NOT EXISTS purchase_items (
+-- purchases_items
+CREATE TABLE IF NOT EXISTS purchases_items (
     "purchaseItemId" SERIAL PRIMARY KEY,
     "purchaseId" INTEGER NOT NULL REFERENCES purchases("purchaseId"),
     "productId" INTEGER NOT NULL REFERENCES products("productId"),

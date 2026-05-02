@@ -115,11 +115,9 @@ export class PurchasesService {
     } else if (isStatusSearch) {
       whereCondition = { ...baseConditions, purchaseStatus: param.toUpperCase() };
     } else {
-      const upperParam = param.toUpperCase();
       whereCondition = [
-        { ...baseConditions, supplier: { names: ILike(`%${param}%`) } },
-        { ...baseConditions, supplier: { lastnames: ILike(`%${param}%`) } },
-        { ...baseConditions, supplier: { ci: upperParam } },
+        { ...baseConditions, supplier: { companyName: ILike(`%${param}%`) } },
+        { ...baseConditions, supplier: { rif: ILike(`%${param}%`) } },
         { ...baseConditions, invoiceNumber: ILike(`%${param}%`) },
       ];
     }

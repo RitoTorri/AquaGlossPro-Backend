@@ -1,9 +1,18 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Unique, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+  Unique,
+  OneToMany,
+} from 'typeorm';
 import { actionsPermissions } from '../../../shared/enums/actions.enums';
 import { Modul } from '../../modules/entities/module.entity';
 import { RolePermission } from '../../../modules/role_permissions/entities/role_permission.entity'; // Ajusta las rutas
 
-@Entity("permissions")
+@Entity('permissions')
 @Unique(['modul', 'typePermission'])
 export class Permission {
   @PrimaryGeneratedColumn()
@@ -14,7 +23,7 @@ export class Permission {
 
   @Column({
     type: 'enum',
-    enum: actionsPermissions
+    enum: actionsPermissions,
   })
   typePermission: actionsPermissions;
 
@@ -33,6 +42,6 @@ export class Permission {
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',
   })
-  @JoinColumn({ name: 'moduleId', })
+  @JoinColumn({ name: 'moduleId' })
   modul: Modul;
 }

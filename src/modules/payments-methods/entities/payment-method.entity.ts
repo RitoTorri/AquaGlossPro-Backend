@@ -8,6 +8,7 @@ import {
   OneToMany,
 } from 'typeorm';
 import { Purchase } from '../../purchases/entities/purchase.entity';
+import { Sale } from '../../sales/entities/sale.entity';
 
 @Entity('payments_methods')
 export class PaymentMethod {
@@ -31,4 +32,7 @@ export class PaymentMethod {
 
   @OneToMany(() => Purchase, (purchase) => purchase.paymentMethod)
   purchases: Purchase[];
+
+  @OneToMany(() => Sale, (sale) => sale.paymentMethod)
+  sales: Sale[];
 }

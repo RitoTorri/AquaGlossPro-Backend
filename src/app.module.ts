@@ -26,6 +26,9 @@ import { CommissionsModule } from './modules/commissions/commissions.module';
 import { CombosModule } from './modules/combos/combos.module';
 import { CombosServicesModule } from './modules/combos-services/combos-services.module';
 import { PurchasesModule } from './modules/purchases/purchases.module';
+import { SalesModule } from './modules/sales/sales.module';
+import { SalesItemsModule } from './modules/sales_items/sales_items.module';
+import { ServicesAssigmentsModule } from './modules/services_assigments/services_assigments.module';
 
 @Module({
   imports: [
@@ -78,6 +81,12 @@ import { PurchasesModule } from './modules/purchases/purchases.module';
     CombosModule,
 
     PurchasesModule,
+
+    SalesModule,
+
+    SalesItemsModule,
+
+    ServicesAssigmentsModule
   ],
   controllers: [PermissionsController],
   providers: [

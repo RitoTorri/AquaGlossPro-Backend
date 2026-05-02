@@ -27,7 +27,7 @@ export class Product {
   @Column({ type: 'enum', enum: TypeUnit, default: TypeUnit.LITERS })
   unitType: TypeUnit;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: false })
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: false, default: 0 })
   unitCostLiter: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })

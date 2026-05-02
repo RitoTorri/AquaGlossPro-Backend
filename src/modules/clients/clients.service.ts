@@ -56,15 +56,28 @@ export class ClientsService {
 
   async findClients(paginationDto: PaginationDto) {
     const { limit, page, active, param } = paginationDto;
-    const offset : number = (page - 1) * limit;
+    const offset: number = (page - 1) * limit;
 
     // 1. Obtener totales globales (sin paginación y sin filtro de active en el WHERE final)
     const totalsQuery = `
-        SELECT 
-            COUNT(*) AS total_items,
-            COUNT(*) FILTER(WHERE active = true) AS total_items_active,
-            COUNT(*) FILTER(WHERE active = false) AS total_items_inactive
-        FROM clients
+      SELECT 
+          COUNT(*) AS total_items,
+          COUNT(*) FILTER(WHERE active = true) AS total_items_active,
+          COUNT(*) FILTER(WHERE active = false) AS total_items_inactive,
+          SUM(vehicle_count) AS total_vehicles,
+          ROUND(
+              AVG(vehicle_count) FILTER (WHERE vehicle_count > 0)::NUMERIC, 2
+          ) AS vehicle_average,
+          COUNT(*) FILTER (WHERE vehicle_count >= 3) AS clients_with_3_plus_vehicles
+      FROM (
+          SELECT 
+              c."clientId", 
+              c.active,
+              COUNT(v."vehicleId") FILTER (WHERE v.active = true) AS vehicle_count
+          FROM clients c
+          LEFT JOIN vehicles v ON c."clientId" = v."ownerId"
+          GROUP BY c."clientId", c.active
+      ) AS client_summary;
     `;
     const totalsResult = await this.clientsRepository.query(totalsQuery);
     const totals = totalsResult[0] || { total_items: 0, total_items_active: 0, total_items_inactive: 0 };
@@ -90,7 +103,7 @@ export class ClientsService {
       parameters.push(`%${param.toUpperCase()}%`);
     }
 
-    dataQuery += `  ORDER BY c."clientId" ASC LIMIT $1 OFFSET $2`
+    dataQuery += `  ORDER BY c."clientId" ASC LIMIT $1 OFFSET $2`;
 
     console.log(parameters);
 
@@ -118,6 +131,9 @@ export class ClientsService {
           general: parseInt(totals.total_items) || 0,
           active: parseInt(totals.total_items_active) || 0,
           inactive: parseInt(totals.total_items_inactive) || 0,
+          vehicleAverage: parseFloat(totals.vehicle_average) || 0,
+          clientsWith3PlusVehicles: parseInt(totals.clients_with_3_plus_vehicles) || 0,
+          totalVehicles: parseInt(totals.total_vehicles) || 0,
         },
       },
     };

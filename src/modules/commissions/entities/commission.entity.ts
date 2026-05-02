@@ -2,25 +2,21 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToOne,
-  JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
+  OneToOne,
 } from 'typeorm';
-import { Employee } from '../../employees/entities/employee.entity';
 import { StatusPayments } from '../../../shared/enums/status-payments.enum';
+import { ServicesAssigment } from '../../services_assigments/entities/services_assigment.entity';
 
 @Entity('commissions')
 export class Commission {
   @PrimaryGeneratedColumn()
   commissionId: number;
 
-  @Column({ name: 'employeeId' })
-  employeeId: number;
-
-  @Column({ name: 'saleDetailId' })
-  saleDetailId: number;
+  @Column({ nullable: false, type: 'int' })
+  serviceAssigmentId: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   comissionTotal: number;
@@ -32,19 +28,15 @@ export class Commission {
   })
   statusPaymentComission: StatusPayments;
 
-  @Column({ default: true })
+  @Column({ type: 'boolean', default: true })
   active: boolean;
+
+  @Column({ type: 'timestamptz', nullable: true, default: null })
+  paymentDate: Date | null;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 
   @UpdateDateColumn({ type: 'timestamptz', nullable: true })
   updatedAt: Date | null;
-
-  @DeleteDateColumn({ type: 'timestamptz', nullable: true })
-  deletedAt: Date | null;
-
-  @ManyToOne(() => Employee, (employee) => employee.commissions)
-  @JoinColumn({ name: 'employeeId' })
-  employee: Employee;
 }

@@ -14,16 +14,16 @@ export class Supplier {
   @PrimaryGeneratedColumn()
   supplierId: number;
 
-  @Column({ nullable: false, length: 40 })
+  @Column({ nullable: false, length: 40, unique: true })
   companyName: string;
 
-  @Column({ nullable: false, length: 50 })
+  @Column({ nullable: false, length: 50, unique: true })
   email: string;
 
-  @Column({ nullable: false, length: 25 })
+  @Column({ nullable: false, length: 25, unique: true })
   numberPhone: string;
 
-  @Column({ nullable: false, length: 20 })
+  @Column({ nullable: false, length: 20, unique: true })
   rif: string;
 
   @Column({ nullable: false, default: true })

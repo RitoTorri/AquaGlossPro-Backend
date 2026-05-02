@@ -50,8 +50,8 @@ export class ProductsService {
             COUNT(*) AS total_general,
             COUNT(*) FILTER(WHERE active = true) AS total_active,
             COUNT(*) FILTER(WHERE active = false) AS total_inactive,
-            COUNT(*) FILTER(WHERE "currentStock" = 0) AS total_soldOut,
-            COUNT(*) FILTER(WHERE "currentStock" <= "minStock") AS total_critical,
+            COUNT(*) FILTER(WHERE "currentStock" = 0) AS "total_soldOut",
+            COUNT(*) FILTER(WHERE "currentStock" BETWEEN 1 AND "minStock") AS total_critical,
             SUM("unitCostLiter" * "currentStock") FILTER(WHERE active = true) AS total_invested_capital
         FROM products
     `;
