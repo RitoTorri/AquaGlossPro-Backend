@@ -128,7 +128,7 @@ export class PurchasesService {
       take: limit,
       skip: (page - 1) * limit,
       relations: ['supplier', 'paymentMethod'], // Relaciones necesarias
-      order: { purchaseId: 'ASC' }, // Compras más recientes primero
+      order: { purchaseDate: 'DESC' }, // Compras más recientes primero
       withDeleted: true,
       select: {
         purchaseId: true,
