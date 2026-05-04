@@ -10,11 +10,13 @@ import {
   HttpCode,
   InternalServerErrorException,
   HttpException,
+  Query,
   //UseGuards
 } from '@nestjs/common';
 import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { PaginationDto } from '../../shared/dto/pagination.dto';
 //import { VerifyTokenGuard } from '../../shared/guards/verify-token.guard';
 import Docs from './roles.swagger';
 
@@ -44,9 +46,9 @@ export class RolesController {
   //@UseGuards(VerifyTokenGuard)
   @Get()
   @HttpCode(200)
-  async findAll() {
+  async findAll(@Query() paginationDto: PaginationDto) {
     try {
-      const roles = await this.rolesService.findAll();
+      const roles = await this.rolesService.findAll(paginationDto);
       return { message: 'Roles encontrados exitosamente', data: roles };
     } catch (error) {
       if (error instanceof HttpException) throw error;
