@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsInt, Min, Max, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsInt, Min, Max, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CombosDto {
   @IsNotEmpty({ message: 'El id del empleado es obligatorio' })
@@ -21,4 +21,9 @@ export class CombosDto {
   @Min(0, { message: 'El descuento debe de ser mayor o igual a 0' })
   @Max(100, { message: 'El descuento debe de ser menor o igual a 100' })
   discount?: number;
+
+  @IsOptional()
+  @IsString({ message: 'Las notas deben de ser un texto' })
+  @MaxLength(255, { message: 'Las notas deben de tener menos de 255 caracteres' })
+  notes?: string;
 }

@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
   OneToOne,
+  JoinColumn,
 } from 'typeorm';
 import { StatusPayments } from '../../../shared/enums/status-payments.enum';
 import { ServicesAssigment } from '../../services_assigments/entities/services_assigment.entity';
@@ -19,17 +20,14 @@ export class Commission {
   serviceAssigmentId: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
-  comissionTotal: number;
+  conmissionTotal: number;
 
   @Column({
     type: 'enum',
     enum: StatusPayments,
     default: StatusPayments.PENDING,
   })
-  statusPaymentComission: StatusPayments;
-
-  @Column({ type: 'boolean', default: true })
-  active: boolean;
+  statusPaymentConmission: StatusPayments;
 
   @Column({ type: 'timestamptz', nullable: true, default: null })
   paymentDate: Date | null;
@@ -39,4 +37,9 @@ export class Commission {
 
   @UpdateDateColumn({ type: 'timestamptz', nullable: true })
   updatedAt: Date | null;
+
+  // Relaciones
+  @OneToOne(() => ServicesAssigment, (sa) => sa.union)
+  @JoinColumn({ name: 'serviceAssigmentId' })
+  servicesAssigments: ServicesAssigment;
 }

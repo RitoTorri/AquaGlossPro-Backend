@@ -49,6 +49,7 @@ export class CreateSaleDto {
         serviceTypeVehicleId: 'Id del servicio del combo',
         comboOriginId: 'Id del combo (Opcional)',
         discount: 'Descuento del combo (Opcional)',
+        notes: 'Notas del servicio que hizo el empleado (Opcional)',
       },
     ],
     description: 'Lista de combos que se estan vendiendo',

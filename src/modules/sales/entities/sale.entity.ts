@@ -31,7 +31,23 @@ export class Sale {
   @Column({ nullable: true, type: 'text' })
   initialState: string;
 
-  @Column({ nullable: true, type: 'timestamptz', default: new Date() })
+  @Column({
+    nullable: true,
+    type: 'timestamptz',
+    default: () => 'CURRENT_TIMESTAMP', // Mejor usar la función nativa de DB
+    transformer: {
+      to: (value: Date) => value,
+      from: (value: Date) => {
+        if (!(value instanceof Date)) return value;
+        const day = String(value.getDate()).padStart(2, '0');
+        const month = String(value.getMonth() + 1).padStart(2, '0');
+        const year = value.getFullYear();
+        const hours = String(value.getHours()).padStart(2, '0');
+        const minutes = String(value.getMinutes()).padStart(2, '0');
+        return `${day}-${month}-${year} ${hours}:${minutes}`;
+      },
+    },
+  })
   saleDate: Date;
 
   @UpdateDateColumn({ type: 'timestamp', nullable: true, default: null })

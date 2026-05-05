@@ -8,7 +8,7 @@ export const configSwagger = new DocumentBuilder()
     .addServer(`http://localhost:${port}`)
     .setContact(
       'Jesus Francisco Cortez Torres', 
-      'https://rito-torri-mi-portfolio.netlify.app/', 
+      'https://cortez-porfolio.netlify.app/', 
       'cortezfrancisco025@gmail.com'
     )
     .build();

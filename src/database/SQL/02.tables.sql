@@ -254,7 +254,7 @@ CREATE TABLE IF NOT EXISTS services_assignments (
     "serviceAssigmentId" SERIAL PRIMARY KEY,
     "saleItemId" INTEGER NOT NULL REFERENCES sales_items("saleItemId"),
     "employeeId" INTEGER NOT NULL REFERENCES employees("employeeId"),
-    "notes" TEXT,
+    "notes" TEXT DEFAULT NULL,
     "active" BOOLEAN DEFAULT TRUE,
     "assignmentDate" TIMESTAMP NOT NULL DEFAULT NOW(),
     "createdAt" TIMESTAMP DEFAULT NOW(),
@@ -265,8 +265,8 @@ CREATE TABLE IF NOT EXISTS services_assignments (
 CREATE TABLE IF NOT EXISTS commissions (
     "commissionId" SERIAL PRIMARY KEY,
     "serviceAssigmentId" INTEGER NOT NULL UNIQUE REFERENCES services_assignments("serviceAssigmentId"),
-    "comissionTotal" DECIMAL(10, 2) NOT NULL,
-    "statusPaymentComission" status_payments NOT NULL DEFAULT 'W',
+    "conmissionTotal" DECIMAL(10, 2) NOT NULL,
+    "statusPaymentConmission" status_payments VARCHAR(1) NOT NULL DEFAULT 'W',
     "paymentDate" TIMESTAMP DEFAULT NULL,
     "createdAt" TIMESTAMP DEFAULT NOW(),
     "updatedAt" TIMESTAMP DEFAULT NULL
