@@ -15,7 +15,6 @@ import {
 } from '@nestjs/common';
 import { RolePermissionsService } from './role_permissions.service';
 import { CreateRolePermissionDto } from './dto/create-role_permission.dto';
-import { UpdateRolePermissionDto } from './dto/update-role_permission.dto';
 import { PaginationDto } from '../../shared/dto/pagination.dto';
 // import { VerifyTokenGuard } from '../../shared/guards/verify-token.guard';
 import Docs from './role_permissions.swagger';
@@ -54,21 +53,6 @@ export class RolePermissionsController {
         message: 'Roles permissions found successfully',
         data: rolesPermissions,
       };
-    } catch (error) {
-      if (error instanceof HttpException) throw error;
-      console.log(error);
-      throw new InternalServerErrorException(error.message);
-    }
-  }
-
-  @Docs.updateRolePermission()
-  //@UseGuards(VerifyTokenGuard)
-  @Patch(':id')
-  @HttpCode(204)
-  async update(@Param('id', ParseIntPipe) id: string, @Body() updateRolePermissionDto: UpdateRolePermissionDto) {
-    try {
-      await this.rolePermissionsService.update(+id, updateRolePermissionDto);
-      return;
     } catch (error) {
       if (error instanceof HttpException) throw error;
       console.log(error);
