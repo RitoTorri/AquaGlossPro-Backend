@@ -14,7 +14,7 @@ export class ServicesTypeVehicle {
     @Column()
     typeVehicleId: number;
 
-    @Column({ type: 'decimal', precision: 10, scale: 2 })
+    @Column('decimal', { precision: 10, scale: 2 })
     price: number;
 
     @Column({ default: true })
