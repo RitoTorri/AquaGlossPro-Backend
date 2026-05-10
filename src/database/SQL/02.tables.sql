@@ -266,7 +266,7 @@ CREATE TABLE IF NOT EXISTS commissions (
     "commissionId" SERIAL PRIMARY KEY,
     "serviceAssigmentId" INTEGER NOT NULL UNIQUE REFERENCES services_assignments("serviceAssigmentId"),
     "conmissionTotal" DECIMAL(10, 2) NOT NULL,
-    "statusPaymentConmission" status_payments VARCHAR(1) NOT NULL DEFAULT 'W',
+    "statusPaymentConmission" status_payments NOT NULL DEFAULT 'W',
     "paymentDate" TIMESTAMP DEFAULT NULL,
     "createdAt" TIMESTAMP DEFAULT NOW(),
     "updatedAt" TIMESTAMP DEFAULT NULL
