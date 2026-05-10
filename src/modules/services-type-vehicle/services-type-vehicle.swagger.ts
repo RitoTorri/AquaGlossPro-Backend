@@ -29,7 +29,11 @@ export function ApiFindOneDoc() {
 export function ApiUpdateDoc() {
     return applyDecorators(
         ApiOperation({ summary: 'Actualizar una relación' }),
+<<<<<<< HEAD
         ApiOkResponse({ description: 'Relación actualizada exitosamente' }),
+=======
+        ApiNoContentResponse({ description: 'Relación actualizada exitosamente' }),
+>>>>>>> master
         ApiNotFoundResponse({ description: 'Relación no encontrada' }),
         ApiConflictResponse({ description: 'Conflicto (relación inactiva o duplicada)' }),
     );
@@ -38,7 +42,11 @@ export function ApiUpdateDoc() {
 export function ApiRestoreDoc() {
     return applyDecorators(
         ApiOperation({ summary: 'Restaurar una relación eliminada' }),
+<<<<<<< HEAD
         ApiOkResponse({ description: 'Relación restaurada exitosamente' }),
+=======
+        ApiNoContentResponse({ description: 'Relación restaurada exitosamente' }),
+>>>>>>> master
         ApiNotFoundResponse({ description: 'Relación no encontrada' }),
         ApiConflictResponse({ description: 'La relación ya está activa' }),
     );
@@ -47,7 +55,11 @@ export function ApiRestoreDoc() {
 export function ApiRemoveDoc() {
     return applyDecorators(
         ApiOperation({ summary: 'Eliminar una relación (soft delete)' }),
+<<<<<<< HEAD
         ApiOkResponse({ description: 'Relación eliminada exitosamente' }),
+=======
+        ApiNoContentResponse({ description: 'Relación eliminada exitosamente' }),
+>>>>>>> master
         ApiNotFoundResponse({ description: 'Relación no encontrada' }),
         ApiConflictResponse({ description: 'La relación ya está inactiva' }),
     );

@@ -6,7 +6,11 @@ export class CreateServicesTypeVehicleDto {
     @IsNumber()
     @IsNotEmpty()
     @Min(1)
+<<<<<<< HEAD
     serviceId: number;
+=======
+    serviceId: number;  // Asegúrate que se llame serviceId, no servicedAt
+>>>>>>> master
 
     @ApiProperty({ example: 1, minimum: 1 })
     @IsNumber()

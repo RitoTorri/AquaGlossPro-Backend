@@ -16,7 +16,11 @@ export class Combo {
     isPromotion: boolean;
 
     @Column({ type: 'timestamptz', nullable: true })
+<<<<<<< HEAD
     expirationDate: Date | null;
+=======
+    expirationDate: Date;
+>>>>>>> master
 
     @Column({ default: true })
     active: boolean;
@@ -30,6 +34,10 @@ export class Combo {
     @DeleteDateColumn({ type: 'timestamptz', nullable: true })
     deletedAt: Date | null;
 
+<<<<<<< HEAD
     @OneToMany(() => CombosServiceEntity, (cs: CombosServiceEntity) => cs.combo)
+=======
+    @OneToMany(() => CombosServiceEntity, (cs) => cs.combo)
+>>>>>>> master
     combosServices: CombosServiceEntity[];
 }
