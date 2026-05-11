@@ -29,12 +29,6 @@ export class CreateSaleDto {
   @Min(1, { message: 'El id del método de pago debe de ser mayor a 0' })
   paymentMethodId: number;
 
-  /*@ApiProperty({ example: StatusPayments.PAID, description: 'Estado de la venta', enum: StatusPayments })
-  statusSale: string;*/
-
-  /*@ApiProperty({ example: StatusWashing.WAITING, description: 'Estado de la venta', enum: StatusWashing })
-  statusWashing: string;*/
-
   @ApiProperty({
     example: 'Vehiculo con golpe en el parabrisas.',
     description: 'Descripcion estado inical del vehiculo.',

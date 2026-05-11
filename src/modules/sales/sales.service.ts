@@ -1,10 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, DataSource, Repository, ILike } from 'typeorm';
+import { Between, DataSource, Repository, ILike, SelectQueryBuilder } from 'typeorm';
 import { CreateSaleDto } from './dto/create-sale.dto';
-import { UpdateSaleDto } from './dto/update-sale.dto';
+import { UpdateSaleStatusWashingDto } from './dto/update-sale-status-washing.dto';
+import { UpdateSaleStatusPaymentDto } from './dto/update-sale-status-payment.dto';
+import { StatusPayments } from '../../shared/enums/status-payments.enum';
 import { Sale } from './entities/sale.entity';
 import { QueryDateDto } from '../../shared/dto/query.date.dto';
+import { StatusWashing } from '../../shared/enums/status.washing';
 
 @Injectable()
 export class SalesService {
@@ -49,6 +52,94 @@ export class SalesService {
         );
       }
 
+      // Verificamos que el vehiculo no este en otra venta
+      const isVehicleInSale = await queryRunner.manager.query(
+        `
+        SELECT NOT EXISTS (
+          SELECT 1
+          FROM sales
+          WHERE "vehicleId" = $1
+            AND "statusWashing" IN ('W', 'I')
+        ) AS disponible;  
+      `,
+        [rest.vehicleId],
+      );
+      console.log('Resultado de la verificación de que el vehiculo no este en otra venta');
+      console.log(isVehicleInSale[0]);
+
+      if (!isVehicleInSale[0].disponible) {
+        throw new ConflictException('El vehículo id:' + rest.vehicleId + ' esta en proceso de limpieza en otra venta.');
+      }
+
+      // Verficamos que el tipo de vehiculo del vehiculo enviado sea el
+      // mismo que el tipo de vehiculo del servicio que se va a pagar
+
+      // Extraer el typeVehicleId del vehiculo enviado
+      const vehicleType = await queryRunner.manager.query(
+        `SELECT "typeVehicleId" FROM vehicles WHERE "vehicleId" = $1 AND "active" = TRUE`,
+        [rest.vehicleId],
+      );
+
+      if (!vehicleType.length) {
+        throw new NotFoundException('El vehículo no existe o está inactivo.');
+      }
+
+      const typeVehicleId = vehicleType[0].typeVehicleId;
+
+      // Extraer los serviceTypeVehicleId únicos del array services
+      const serviceTypeVehicleIds = [...new Set(services?.map((s) => s.serviceTypeVehicleId))];
+
+      if (serviceTypeVehicleIds.length > 0) {
+        // Verificar que TODOS esos servicios correspondan al typeVehicleId del vehículo
+        const validServices = await queryRunner.manager.query(
+          `SELECT COUNT(*)::int = $1 AS "allValid"
+     FROM services_type_vehicle
+     WHERE "serviceTypeVehicleId" = ANY($2)
+       AND "typeVehicleId" = $3`,
+          [serviceTypeVehicleIds.length, serviceTypeVehicleIds, typeVehicleId],
+        );
+
+        if (!validServices[0]?.allValid) {
+          throw new BadRequestException('Uno o más servicios no corresponden al tipo de vehículo de esta venta.');
+        }
+      }
+
+      // Verificamos que el empleado no este en otra venta
+      if (services) {
+        for (const service of services) {
+          const isEmployeeInSale = await queryRunner.manager.query(
+            `
+            SELECT 
+                e."employeeId",
+                e."names",
+                e."lastnames",
+                NOT EXISTS (
+                    SELECT 1
+                    FROM services_assignments sa
+                    INNER JOIN sales_items si ON sa."saleItemId" = si."saleItemId"
+                    INNER JOIN sales s ON si."saleId" = s."saleId"
+                    WHERE sa."employeeId" = e."employeeId"
+                      AND s."statusWashing" IN ('W', 'I')
+                ) AS disponible
+            FROM employees e
+            WHERE e."employeeId" = $1
+              AND e."active" = TRUE
+              AND e."deletedAt" IS NULL; `,
+            [service.employeeId],
+          );
+
+          console.log('Verificando disponibilidad de empleado:', isEmployeeInSale[0]);
+
+          if (!isEmployeeInSale[0] || !isEmployeeInSale[0].disponible) {
+            // Ahora sí, este throw detendrá la función, irá al catch,
+            // hará el rollback y enviará la respuesta 409 a Swagger.
+            throw new ConflictException(
+              `El empleado id: ${isEmployeeInSale[0]?.employeeId} ${isEmployeeInSale[0]?.names || ''} está asignado en otra venta activa.`,
+            );
+          }
+        }
+      }
+
       // Creamos la venta
       const sale = (
         await queryRunner.manager
@@ -86,14 +177,90 @@ export class SalesService {
       console.log('Servicios que participan en la venta: ');
       console.log(servicesTypeVehicleIds);
 
-      // Expraemos los combos id de la venta
-      const combosSetIds = [
-        ...new Set(
-          services?.map((s) => s.comboOriginId).filter((id) => id), // Esto elimina undefined y null
-        ),
+      // Extraemos los combos id de la venta, deduplicados
+      const combosSetIds: number[] = [
+        ...new Set(services?.map((s) => s.comboOriginId).filter((id): id is number => id != null)),
       ];
-      console.log('Combos que participan en la venta: ');
-      console.log(combosSetIds);
+
+      console.log('Combos que participan en la venta (únicos): ', combosSetIds);
+
+      // ==================== VALIDACIÓN DE COMBOS ====================
+      if (combosSetIds.length > 0) {
+        // 1. Información de combos (existencia, activo, expiración)
+        const comboInfoQuery = `
+          SELECT "comboId", "active", "expirationDate"
+          FROM combos
+          WHERE "comboId" = ANY($1)
+        `;
+        const combosInfo: Array<{
+          comboId: number;
+          active: boolean;
+          expirationDate: string | null;
+        }> = await queryRunner.manager.query(comboInfoQuery, [combosSetIds]);
+
+        if (combosInfo.length !== combosSetIds.length) {
+          throw new NotFoundException('Uno o más combos no existen.');
+        }
+
+        for (const combo of combosInfo) {
+          if (!combo.active) {
+            throw new BadRequestException(`El combo con ID ${combo.comboId} no está activo.`);
+          }
+          if (combo.expirationDate && new Date(combo.expirationDate) < new Date()) {
+            throw new BadRequestException(`El combo con ID ${combo.comboId} ha expirado.`);
+          }
+        }
+
+        // 2. Obtener todos los servicesTypeVehicleId que pertenecen a cada combo (activos)
+        const comboServicesQuery = `
+          SELECT cs."comboId", cs."servicesTypeVehicleId"
+          FROM combos_services cs
+          WHERE cs."comboId" = ANY($1) AND cs."active" = TRUE
+        `;
+        const comboServices: Array<{
+          comboId: number;
+          servicesTypeVehicleId: number;
+        }> = await queryRunner.manager.query(comboServicesQuery, [combosSetIds]);
+
+        // Agrupar servicios esperados por combo
+        const expectedServicesMap = new Map<number, Set<number>>();
+        for (const row of comboServices) {
+          if (!expectedServicesMap.has(row.comboId)) {
+            expectedServicesMap.set(row.comboId, new Set<number>());
+          }
+          expectedServicesMap.get(row.comboId)!.add(row.servicesTypeVehicleId);
+        }
+
+        // 3. Agrupar los servicios enviados que pertenecen a un combo
+        const providedServicesMap = new Map<number, Set<number>>();
+        for (const s of services ?? []) {
+          const comboId = s.comboOriginId;
+          if (comboId != null) {
+            if (!providedServicesMap.has(comboId)) {
+              providedServicesMap.set(comboId, new Set<number>());
+            }
+            providedServicesMap.get(comboId)!.add(s.serviceTypeVehicleId);
+          }
+        }
+
+        // 4. Comparar que los servicios enviados sean exactamente los del combo
+        for (const comboId of combosSetIds) {
+          const expected = expectedServicesMap.get(comboId) ?? new Set<number>();
+          const provided = providedServicesMap.get(comboId) ?? new Set<number>();
+
+          const expectedArr = Array.from(expected).sort((a, b) => a - b);
+          const providedArr = Array.from(provided).sort((a, b) => a - b);
+
+          if (JSON.stringify(expectedArr) !== JSON.stringify(providedArr)) {
+            throw new BadRequestException(
+              `El combo "${comboId}" requiere exactamente los servicios: [${expectedArr.join(', ')}]. ` +
+                `Recibidos: [${providedArr.join(', ')}].`,
+            );
+          }
+        }
+      }
+
+      // ============ AQUÍ CONTINÚA EL RESTO DEL CÓDIGO ============
 
       const parameters: any[] = [
         employeesSetIds.length,
@@ -289,108 +456,253 @@ export class SalesService {
   async findAll(paginationDto: QueryDateDto) {
     const { limit = 10, page = 1, param, endDate, startDate } = paginationDto;
 
-    // 1. Construir el objeto de condiciones (AND lógico)
-    let where: any = {};
+    // 1. Condiciones de filtro
+    const upperParam = param ? String(param).toUpperCase() : null;
 
-    if (param) {
-      const upperParam = String(param).toUpperCase();
-      if (['P', 'C', 'W'].includes(upperParam)) {
-        // Si es un estado, filtramos por statusSale
-        where.statusSale = upperParam;
-      } else {
-        // Si no es estado, buscamos por CI en la relación client
-        where.client = { ci: ILike(`%${param}%`) };
+    const buildWhereClause = (qb: SelectQueryBuilder<any>) => {
+      if (upperParam) {
+        if (['P', 'C', 'W'].includes(upperParam)) {
+          qb.andWhere('sale.statusSale = :statusSale', { statusSale: upperParam });
+        } else {
+          qb.leftJoin('sale.client', 'clientForParam');
+          qb.andWhere('clientForParam.ci ILIKE :ci', { ci: `%${upperParam}%` });
+        }
       }
-    }
+      if (startDate && endDate) {
+        qb.andWhere('sale.saleDate BETWEEN :startDate AND :endDate', {
+          startDate,
+          endDate,
+        });
+      }
+    };
 
-    if (startDate && endDate) {
-      // Si ya existe un filtro (por CI o Status), el Between se suma como AND
-      where.saleDate = Between(startDate, endDate);
-    }
+    // 2. Contadores de estados (TOTALES GLOBALES, sin filtros)
+    const qbCountGlobal = this.salesRepository.createQueryBuilder('sale');
 
-    // 2. Usar findAndCount para obtener data y el total real
-    const [sales, total] = await this.salesRepository.findAndCount({
-      select: {
-        saleId: true,
-        saleDate: true,
-        statusSale: true,
-        statusWashing: true,
-        initialState: true,
-        client: {
-          names: true,
-          lastnames: true,
-          numberPhone: true,
-          ci: true,
-        },
-        vehicle: {
-          vehicleId: true,
-          plate: true,
-          typeVehicle: { name: true },
-        },
-        paymentMethod: { name: true },
-        salesItems: {
-          saleItemId: true,
-          servicesTypeVehicle: {
-            service: { name: true },
-            typeVehicle: { name: true },
-            price: true,
-          },
-          comboOrigin: {
-            name: true,
-            isPromotion: true,
-            expirationDate: true,
-          },
-          serviceAssigment: {
-            serviceAssigmentId: true,
-            employee: {
-              names: true,
-              lastnames: true,
-              numberPhone: true,
-              ci: true,
-            },
-            union: { conmissionTotal: true },
-          },
-          discount: true,
-          salePrice: true,
-        },
-      },
-      relations: {
-        client: true,
-        vehicle: { typeVehicle: true },
-        salesItems: {
-          comboOrigin: true,
-          servicesTypeVehicle: {
-            service: true,
-            typeVehicle: true,
-          },
-          serviceAssigment: {
-            employee: true,
-            union: true,
-          },
-        },
-        paymentMethod: true,
-      },
-      where: where, // Pasamos el objeto, no el arreglo
-      take: limit,
-      skip: (page - 1) * limit,
-      order: { saleDate: 'DESC' },
-      withDeleted: true,
+    const rawCounts = await qbCountGlobal
+      .select('sale.statusSale', 'status')
+      .addSelect('COUNT(sale.saleId)', 'total')
+      .groupBy('sale.statusSale')
+      .getRawMany();
+
+    const statusCounts = {
+      Pagadas: 0,
+      Canceladas: 0,
+      EnEspera: 0,
+    };
+    rawCounts.forEach((row: { status: string; total: string }) => {
+      const count = parseInt(row.total, 10);
+      switch (row.status) {
+        case 'P':
+          statusCounts.Pagadas = count;
+          break;
+        case 'C':
+          statusCounts.Canceladas = count;
+          break;
+        case 'W':
+          statusCounts.EnEspera = count;
+          break;
+      }
     });
 
-    // 3. Retornar con el formato de paginación
+    // 3. Consulta principal paginada
+    const qbMain = this.salesRepository.createQueryBuilder('sale');
+    buildWhereClause(qbMain);
+
+    qbMain
+      .leftJoinAndSelect('sale.client', 'client')
+      .leftJoinAndSelect('sale.vehicle', 'vehicle')
+      .leftJoinAndSelect('vehicle.typeVehicle', 'typeVehicle')
+      .leftJoinAndSelect('sale.paymentMethod', 'paymentMethod')
+      .leftJoinAndSelect('sale.salesItems', 'salesItem')
+      .leftJoinAndSelect('salesItem.servicesTypeVehicle', 'stv')
+      .leftJoinAndSelect('stv.service', 'service')
+      .leftJoinAndSelect('stv.typeVehicle', 'stvTypeVehicle')
+      .leftJoinAndSelect('salesItem.comboOrigin', 'combo')
+      .leftJoinAndSelect('salesItem.serviceAssigment', 'assignment')
+      .leftJoinAndSelect('assignment.employee', 'employee')
+      .leftJoinAndSelect('assignment.union', 'commission')
+      .orderBy('sale.saleDate', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    const [sales, total] = await qbMain.getManyAndCount();
+
+    // 4. Transformar datos
+    const data = sales.map((sale) => {
+      // Venta base
+      const baseSale = {
+        saleId: sale.saleId,
+        saleDate: sale.saleDate,
+        statusSale: sale.statusSale,
+        statusWashing: sale.statusWashing,
+        initialState: sale.initialState,
+        paymentMethod: sale.paymentMethod?.name,
+      };
+
+      // Cliente
+      const client = {
+        names: sale.client?.names,
+        lastnames: sale.client?.lastnames,
+        numberPhone: sale.client?.numberPhone,
+        ci: sale.client?.ci,
+      };
+
+      // Vehículo
+      const vehicle = {
+        vehicleId: sale.vehicle?.vehicleId,
+        plate: sale.vehicle?.plate,
+        typeVehicle: sale.vehicle?.typeVehicle?.name,
+      };
+
+      // Agrupar items
+      const comboGroups = new Map<number, any>();
+      const independentServices: any[] = [];
+      let totalAmount = 0;
+
+      (sale.salesItems || []).forEach((item) => {
+        const itemPrice = Number(item.salePrice) || 0;
+        totalAmount += itemPrice;
+
+        // Como es un array, tomamos la primera asignación (única en tu lógica)
+        const assignment = item.serviceAssigment?.[0];
+
+        const baseItem = {
+          serviceName: item.servicesTypeVehicle?.service?.name,
+          typeVehicle: item.servicesTypeVehicle?.typeVehicle?.name,
+          basePrice: item.servicesTypeVehicle?.price,
+          discount: item.discount,
+          salePrice: itemPrice,
+          employee: assignment?.employee
+            ? {
+                names: assignment.employee.names,
+                lastnames: assignment.employee.lastnames,
+                numberPhone: assignment.employee.numberPhone,
+                ci: assignment.employee.ci,
+              }
+            : null,
+          notes: assignment?.notes || null,
+          commission: assignment?.union?.conmissionTotal ?? 0,
+        };
+
+        if (item.comboOriginId) {
+          const group = comboGroups.get(item.comboOriginId);
+          if (group) {
+            group.services.push(baseItem);
+          } else {
+            comboGroups.set(item.comboOriginId, {
+              comboName: item.comboOrigin?.name,
+              isPromotion: item.comboOrigin?.isPromotion,
+              expirationDate: item.comboOrigin?.expirationDate,
+              services: [baseItem],
+            });
+          }
+        } else {
+          independentServices.push(baseItem);
+        }
+      });
+
+      const details = {
+        comboServices: Array.from(comboGroups.values()),
+        independentServices,
+        totalAmount: Math.round(totalAmount * 100) / 100,
+      };
+
+      return { sale: baseSale, client, vehicle, details };
+    });
+
+    // 5. Respuesta final
     return {
-      data: sales,
+      data,
       meta: {
         totalItems: total,
-        itemCount: sales.length,
+        itemCount: data.length,
         itemsPerPage: limit,
         totalPages: Math.ceil(total / limit),
         currentPage: page,
       },
+      statusCounts, // <-- aquí van los contadores, fuera de meta (si prefieres dentro, lo mueves)
     };
   }
 
-  update(id: number, updateSaleDto: UpdateSaleDto) {
-    return `This action updates a #${id} sale`;
+  async updateStatusWashing(id: number, updateSaleStatusWashingDto: UpdateSaleStatusWashingDto) {
+    // Validamos que la venta exista
+    const isExistsData = await this.salesRepository.findOne({
+      select: ['saleId', 'statusWashing'],
+      where: { saleId: id },
+    });
+    if (!isExistsData) {
+      throw new NotFoundException('No existe una venta con el id proporcionado');
+    }
+
+    // VAlidamos el estado de lavado registrada en la DB
+    if (isExistsData.statusWashing === StatusWashing.DONE || isExistsData.statusWashing === StatusWashing.CANCELLED) {
+      throw new ConflictException('Solo se puede cambiar el estado de las ventas que esten en Pendiente o En progreso');
+    }
+
+    // Si el estado del dto es cancelado, Eliminamos en cascada
+    if (updateSaleStatusWashingDto.statusWashing === StatusWashing.CANCELLED) {
+      await this.canceledSale(id);
+    } else {
+      await this.salesRepository.update(id, {
+        statusWashing: updateSaleStatusWashingDto.statusWashing as StatusWashing,
+      });
+    }
+
+    return;
+  }
+
+  async updateStatusPaymentSale(id: number, updateSaleStatusPaymentDto: UpdateSaleStatusPaymentDto) {
+    // Validamos que la venta exista
+    const isExistsData = await this.salesRepository.findOne({
+      select: ['saleId', 'statusSale'],
+      where: { saleId: id },
+    });
+    if (!isExistsData) {
+      throw new NotFoundException('No existe una venta con el id proporcionado');
+    }
+
+    // VAlidamos el estado de pago registrada en la DB
+    if (isExistsData.statusSale === StatusPayments.PAID || isExistsData.statusSale === StatusPayments.CANCELLED) {
+      throw new ConflictException('Solo se puede cambiar el estado de las ventas que esten en Pendiente o En progreso');
+    }
+
+    // Si el estado del dto es cancelado, Eliminamos en cascada
+    if (updateSaleStatusPaymentDto.statusPayment === StatusPayments.CANCELLED) {
+      await this.canceledSale(id);
+    } else {
+      await this.salesRepository.update(id, {
+        statusSale: updateSaleStatusPaymentDto.statusPayment as StatusPayments,
+      });
+    }
+
+    return;
+  }
+
+  private async canceledSale(id: number) {
+    // Inicia una transacción
+    await this.dataSource.transaction(async (manager) => {
+      // 1. Cancelar la venta
+      await this.salesRepository.update(id, {
+        statusSale: StatusPayments.CANCELLED,
+        statusWashing: StatusWashing.CANCELLED,
+      });
+
+      // 2. Cancelar las comisiones asociadas
+      await manager.query(
+        `
+            UPDATE commissions c
+            SET "statusPaymentConmission" = 'C',
+                "updatedAt" = NOW()
+            FROM services_assignments sa
+            JOIN sales_items si ON si."saleItemId" = sa."saleItemId"
+            WHERE c."serviceAssigmentId" = sa."serviceAssigmentId"
+              AND si."saleId" = $1
+        `,
+        [id],
+      );
+    });
+
+    console.log(`Se cancelo la venta de id: ${id}. Ademas de todas las comissiones pertenecientes a esta venta.`);
   }
 }

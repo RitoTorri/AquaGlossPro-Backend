@@ -28,7 +28,6 @@ import { CombosServicesModule } from './modules/combos-services/combos-services.
 import { PurchasesModule } from './modules/purchases/purchases.module';
 import { SalesModule } from './modules/sales/sales.module';
 import { SalesItemsModule } from './modules/sales_items/sales_items.module';
-import { ServicesAssigmentsModule } from './modules/services_assigments/services_assigments.module';
 
 @Module({
   imports: [
@@ -84,9 +83,7 @@ import { ServicesAssigmentsModule } from './modules/services_assigments/services
 
     SalesModule,
 
-    SalesItemsModule,
-
-    ServicesAssigmentsModule
+    SalesItemsModule
   ],
   controllers: [PermissionsController],
   providers: [

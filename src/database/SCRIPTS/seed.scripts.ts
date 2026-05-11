@@ -50,7 +50,7 @@ async function runSeed() {
       'SUPPLIERS',
       'TYPE_VEHICLES',
       'VEHICLES',
-      'USERS'
+      'USERS',
     ];
     const actions = ['C', 'R', 'U', 'D'];
 
