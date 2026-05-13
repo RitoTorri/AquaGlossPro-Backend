@@ -1,72 +1,90 @@
-import { Controller, Get, Query, Res } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+// src/modules/reports/reports.controller.ts
+import { Controller, Get, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { ReportsService } from './reports.service';
 import { DateRangeDto } from './dto/date-range.dto';
-import { ExportFormat } from './dto/export-format.dto';
-import { ReportsSwagger } from './reports.swagger';
 
 @ApiTags('reports')
 @Controller('reports')
 export class ReportsController {
-    constructor(private readonly service: ReportsService) {}
+    constructor(private readonly reportsService: ReportsService) {}
 
-    @Get('total-spent')
-    @ReportsSwagger.getTotalSpent()
-    async getTotalSpent(@Query() dateRange: DateRangeDto) {
-        return this.service.getTotalSpent(dateRange);
+    // ==================== TARJETAS ====================
+    @Get('total-services-today')
+    @ApiOperation({ summary: 'Total de servicios del día (ventas pagadas hoy)' })
+    async getTotalServicesToday() {
+        return this.reportsService.getTotalServicesToday();
     }
 
-    @Get('top-products')
-    @ReportsSwagger.getTopProducts()
-    async getTopProducts(@Query() dateRange: DateRangeDto, @Query('limit') limit?: number) {
-        return this.service.getTopPurchasedProducts(dateRange, limit || 10);
+    @Get('most-used-payment-method')
+    @ApiOperation({ summary: 'Método de pago más utilizado en el período' })
+    async getMostUsedPaymentMethod(@Query() dateRange: DateRangeDto) {
+        return this.reportsService.getMostUsedPaymentMethod(dateRange);
     }
 
-    @Get('by-supplier')
-    @ReportsSwagger.getBySupplier()
-    async getBySupplier(@Query() dateRange: DateRangeDto) {
-        return this.service.getPurchasesBySupplier(dateRange);
+    @Get('most-frequent-vehicle-type')
+    @ApiOperation({ summary: 'Tipo de vehículo más frecuente en el período' })
+    async getMostFrequentVehicleType(@Query() dateRange: DateRangeDto) {
+        return this.reportsService.getMostFrequentVehicleType(dateRange);
     }
 
-    @Get('total-spent/export')
-    @ReportsSwagger.exportTotalSpent()
-    async exportTotalSpent(
-        @Query() dateRange: DateRangeDto,
-        @Query('format') format: ExportFormat,
-        @Res() res: any,
-    ) {
-        const buffer = await this.service.exportTotalSpent(dateRange, format);
-        const filename = `total_compras_${Date.now()}.${format}`;
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-        res.setHeader('Content-Type', format === ExportFormat.PDF ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.send(buffer);
+    @Get('most-used-product')
+    @ApiOperation({ summary: 'Producto (servicio) más utilizado en el período' })
+    async getMostUsedProduct(@Query() dateRange: DateRangeDto) {
+        return this.reportsService.getMostUsedProduct(dateRange);
     }
 
-    @Get('top-products/export')
-    @ReportsSwagger.exportTopProducts()
-    async exportTopProducts(
-        @Query() dateRange: DateRangeDto,
-        @Query('format') format: ExportFormat,
-        @Res() res: any,
-    ) {
-        const buffer = await this.service.exportTopPurchasedProducts(dateRange, format);
-        const filename = `top_productos_compras_${Date.now()}.${format}`;
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-        res.setHeader('Content-Type', format === ExportFormat.PDF ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.send(buffer);
+    // ==================== REPORTES ====================
+    @Get('sales-by-payment-method')
+    @ApiOperation({ summary: 'Ventas por método de pago (montos totales)' })
+    async getSalesByPaymentMethod(@Query() dateRange: DateRangeDto) {
+        return this.reportsService.getSalesByPaymentMethod(dateRange);
     }
 
-    @Get('by-supplier/export')
-    @ReportsSwagger.exportBySupplier()
-    async exportBySupplier(
-        @Query() dateRange: DateRangeDto,
-        @Query('format') format: ExportFormat,
-        @Res() res: any,
-    ) {
-        const buffer = await this.service.exportPurchasesBySupplier(dateRange, format);
-        const filename = `compras_por_proveedor_${Date.now()}.${format}`;
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-        res.setHeader('Content-Type', format === ExportFormat.PDF ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.send(buffer);
+    @Get('top-services')
+    @ApiOperation({ summary: 'Servicios más solicitados' })
+    @ApiQuery({ name: 'limit', required: false, type: Number, example: 7 })
+    async getTopServices(@Query() dateRange: DateRangeDto, @Query('limit') limit?: number) {
+        return this.reportsService.getTopServices(dateRange, limit || 7);
+    }
+
+    @Get('frequent-vehicle-types')
+    @ApiOperation({ summary: 'Tipos de vehículos más frecuentes' })
+    @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+    async getFrequentVehicleTypes(@Query() dateRange: DateRangeDto, @Query('limit') limit?: number) {
+        return this.reportsService.getFrequentVehicleTypes(dateRange, limit || 10);
+    }
+
+    @Get('most-used-products')
+    @ApiOperation({ summary: 'Productos (servicios) más utilizados' })
+    @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+    async getMostUsedProducts(@Query() dateRange: DateRangeDto, @Query('limit') limit?: number) {
+        return this.reportsService.getMostUsedProducts(dateRange, limit || 10);
+    }
+
+    @Get('top-employees-by-commission')
+    @ApiOperation({ summary: 'Empleados con mayores comisiones' })
+    @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+    async getTopEmployeesByCommission(@Query() dateRange: DateRangeDto, @Query('limit') limit?: number) {
+        return this.reportsService.getTopEmployeesByCommission(dateRange, limit || 10);
+    }
+
+    @Get('top-employees-by-vehicles-washed')
+    @ApiOperation({ summary: 'Empleados que han lavado más vehículos' })
+    @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+    async getTopEmployeesByVehiclesWashed(@Query() dateRange: DateRangeDto, @Query('limit') limit?: number) {
+        return this.reportsService.getTopEmployeesByVehiclesWashed(dateRange, limit || 10);
+    }
+
+    @Get('total-vehicles-by-type')
+    @ApiOperation({ summary: 'Total de vehículos lavados por tipo' })
+    async getTotalVehiclesByType(@Query() dateRange: DateRangeDto) {
+        return this.reportsService.getTotalVehiclesByType(dateRange);
+    }
+
+    @Get('operational-closure')
+    @ApiOperation({ summary: 'Cierre operativo: ingreso bruto, comisiones pagadas, ingreso neto' })
+    async getOperationalClosure(@Query() dateRange: DateRangeDto) {
+        return this.reportsService.getOperationalClosure(dateRange);
     }
 }
