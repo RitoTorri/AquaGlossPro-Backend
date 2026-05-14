@@ -17,11 +17,7 @@ export class ServicesTypeVehicleService {
         private readonly typeVehicleService: TypeVehicleService,
     ) {}
 
-<<<<<<< HEAD
     async create(createDto: CreateServicesTypeVehicleDto): Promise<ServicesTypeVehicle> {
-=======
-    async create(createDto: CreateServicesTypeVehicleDto) {
->>>>>>> master
         await this.servicesService.findById(createDto.serviceId);
         await this.typeVehicleService.findById(createDto.typeVehicleId);
 
@@ -43,10 +39,7 @@ export class ServicesTypeVehicleService {
 
     async findAll(paginationDto: PaginationDto) {
         const { limit = 10, page = 1, active } = paginationDto;
-<<<<<<< HEAD
-=======
 
->>>>>>> master
         const where = active !== undefined ? { active } : {};
 
         const [data, total] = await this.repository.findAndCount({
@@ -57,15 +50,10 @@ export class ServicesTypeVehicleService {
             order: { serviceTypeVehicleId: 'ASC' },
         });
 
-<<<<<<< HEAD
-        const activeCount = await this.repository.count({ where: { active: true } });
-        const inactiveCount = await this.repository.count({ where: { active: false } });
-=======
         const [activeCount, inactiveCount] = await Promise.all([
             this.repository.count({ where: { active: true } }),
             this.repository.count({ where: { active: false } }),
         ]);
->>>>>>> master
 
         return {
             data,
@@ -81,11 +69,7 @@ export class ServicesTypeVehicleService {
         };
     }
 
-<<<<<<< HEAD
     async findOne(id: number): Promise<ServicesTypeVehicle> {
-=======
-    async findOne(id: number) {
->>>>>>> master
         const entity = await this.repository.findOne({
             where: { serviceTypeVehicleId: id },
             relations: ['service', 'typeVehicle'],
@@ -97,11 +81,7 @@ export class ServicesTypeVehicleService {
         return entity;
     }
 
-<<<<<<< HEAD
     async update(id: number, updateDto: UpdateServicesTypeVehicleDto): Promise<ServicesTypeVehicle> {
-=======
-    async update(id: number, updateDto: UpdateServicesTypeVehicleDto) {
->>>>>>> master
         const entity = await this.findOne(id);
         if (!entity.active) {
             throw new ConflictException('La relación está inactiva, no puede actualizarse');
@@ -135,11 +115,7 @@ export class ServicesTypeVehicleService {
         return this.findOne(updated.serviceTypeVehicleId);
     }
 
-<<<<<<< HEAD
     async remove(id: number): Promise<{ message: string }> {
-=======
-    async remove(id: number) {
->>>>>>> master
         const entity = await this.findOne(id);
         if (!entity.active) {
             throw new ConflictException('La relación ya está inactiva');
@@ -150,11 +126,7 @@ export class ServicesTypeVehicleService {
         return { message: 'Relación desactivada correctamente' };
     }
 
-<<<<<<< HEAD
     async restore(id: number): Promise<{ message: string }> {
-=======
-    async restore(id: number) {
->>>>>>> master
         const entity = await this.findOne(id);
         if (entity.active) {
             throw new ConflictException('La relación ya está activa');

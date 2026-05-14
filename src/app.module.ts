@@ -25,10 +25,8 @@ import { GeneralExceptionFilter } from './shared/filters/catch_exeptions.filters
 import { CommissionsModule } from './modules/commissions/commissions.module';
 import { CombosModule } from './modules/combos/combos.module';
 import { CombosServicesModule } from './modules/combos-services/combos-services.module';
-<<<<<<< HEAD
 import { ReportsModule } from './modules/reports/reports.module';
-=======
->>>>>>> master
+
 
 @Module({
   imports: [
@@ -79,11 +77,8 @@ import { ReportsModule } from './modules/reports/reports.module';
     CombosServicesModule,
 
     CombosModule,
-<<<<<<< HEAD
 
     ReportsModule,
-=======
->>>>>>> master
   ],
   controllers: [PermissionsController],
   providers: [

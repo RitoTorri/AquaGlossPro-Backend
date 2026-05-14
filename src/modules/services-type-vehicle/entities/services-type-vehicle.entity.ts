@@ -6,41 +6,37 @@ import { CombosServiceEntity } from '../../combos-services/entities/combos-servi
 @Entity('services_type_vehicle')
 export class ServicesTypeVehicle {
     @PrimaryGeneratedColumn()
-    serviceTypeVehicleId: number;
+    serviceTypeVehicleId!: number;
 
     @Column()
-    serviceId: number;
+    serviceId!: number;
 
     @Column()
-    typeVehicleId: number;
+    typeVehicleId!: number;
 
-<<<<<<< HEAD
-    @Column('decimal', { precision: 10, scale: 2 })
-=======
     @Column({ type: 'decimal', precision: 10, scale: 2 })
->>>>>>> master
-    price: number;
+    price!: number;
 
     @Column({ default: true })
-    active: boolean;
+    active!: boolean;
 
     @CreateDateColumn({ type: 'timestamptz' })
-    createdAt: Date;
+    createdAt!: Date;
 
     @UpdateDateColumn({ type: 'timestamptz', nullable: true })
-    updatedAt: Date | null;
+    updatedAt!: Date | null;
 
     @DeleteDateColumn({ type: 'timestamptz', nullable: true })
-    deletedAt: Date | null;
+    deletedAt!: Date | null;
 
     @ManyToOne(() => Service, (service) => service.servicesTypeVehicle)
     @JoinColumn({ name: 'serviceId' })
-    service: Service;
+    service!: Service;
 
     @ManyToOne(() => TypeVehicle, (typeVehicle) => typeVehicle.servicesTypeVehicle)
     @JoinColumn({ name: 'typeVehicleId' })
-    typeVehicle: TypeVehicle;
+    typeVehicle!: TypeVehicle;
 
     @OneToMany(() => CombosServiceEntity, (combosService) => combosService.servicesTypeVehicle)
-    combosServices: CombosServiceEntity[];
+    combosServices!: CombosServiceEntity[];
 }

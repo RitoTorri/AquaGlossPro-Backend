@@ -14,12 +14,12 @@ export class DateRangeDto {
     @IsOptional()
     period?: Period = Period.TODAY;
 
-    @ApiPropertyOptional({ example: '2026-04-01', description: 'Requerido si period = custom' })
+    @ApiPropertyOptional({ example: '2026-04-01' })
     @IsDateString()
     @IsOptional()
     startDate?: string;
 
-    @ApiPropertyOptional({ example: '2026-04-30', description: 'Requerido si period = custom' })
+    @ApiPropertyOptional({ example: '2026-04-30' })
     @IsDateString()
     @IsOptional()
     endDate?: string;

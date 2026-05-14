@@ -4,40 +4,32 @@ import { CombosServiceEntity } from '../../combos-services/entities/combos-servi
 @Entity('combos')
 export class Combo {
     @PrimaryGeneratedColumn()
-    comboId: number;
+    comboId!: number;  // ✅ añadido '!'
 
     @Column({ length: 40, unique: true })
-    name: string;
+    name!: string;  // ✅ añadido '!'
 
     @Column({ type: 'decimal', precision: 5, scale: 2 })
-    discountPercentage: number;
+    discountPercentage!: number;  // ✅ añadido '!'
 
     @Column({ default: false })
-    isPromotion: boolean;
+    isPromotion!: boolean;  // ✅ añadido '!'
 
     @Column({ type: 'timestamptz', nullable: true })
-<<<<<<< HEAD
-    expirationDate: Date | null;
-=======
-    expirationDate: Date;
->>>>>>> master
+    expirationDate!: Date | null;  // ✅ añadido '!'
 
     @Column({ default: true })
-    active: boolean;
+    active!: boolean;  // ✅ añadido '!'
 
     @CreateDateColumn({ type: 'timestamptz' })
-    createdAt: Date;
+    createdAt!: Date;  // ✅ añadido '!'
 
     @UpdateDateColumn({ type: 'timestamptz', nullable: true })
-    updatedAt: Date | null;
+    updatedAt!: Date | null;  // ✅ añadido '!'
 
     @DeleteDateColumn({ type: 'timestamptz', nullable: true })
-    deletedAt: Date | null;
+    deletedAt!: Date | null;  // ✅ añadido '!'
 
-<<<<<<< HEAD
     @OneToMany(() => CombosServiceEntity, (cs: CombosServiceEntity) => cs.combo)
-=======
-    @OneToMany(() => CombosServiceEntity, (cs) => cs.combo)
->>>>>>> master
-    combosServices: CombosServiceEntity[];
+    combosServices!: CombosServiceEntity[];  // ✅ añadido '!'
 }
