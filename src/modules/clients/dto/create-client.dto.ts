@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
 export class CreateClientDto {
     @ApiProperty({
@@ -60,4 +60,18 @@ export class CreateClientDto {
     @MaxLength(15)
     @Matches(/^[VJGPE]?[0-9]{7,15}$/i, { message: 'La cedula o rif ebe tener entre 7 y 15 digitos. Ademas, no debe de tener puntos.' })
     ci: string;
+
+    @ApiProperty({
+        example: 'prueba@email.com',
+        required: true,
+        description: 'Email del cliente.',
+        minLength: 15,
+        maxLength: 100,
+    })
+    @IsEmail()
+    @IsString()
+    @IsNotEmpty()
+    @MinLength(15)
+    @MaxLength(100)
+    email: string;
 }

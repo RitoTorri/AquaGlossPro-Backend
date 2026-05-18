@@ -2,6 +2,8 @@
 
 Esta es la API centralizada para la gestión integral de autolavados. El sistema no solo gestiona la operatividad del lavado, sino que integra de forma automatizada el control de inventario (químicos), liquidación de comisiones y una suite contable para la toma de decisiones financieras.
 
+Esta API REST Require del siguiente servicio para envio de correos electrónicos: [Maily](https://github.com/RitoTorri/Maily)
+
 ### 📑 Índice
 
 - [Stack tecnológico](#️-stack-tecnológico)

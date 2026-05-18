@@ -27,6 +27,9 @@ export class Client {
   @Column({ nullable: false, length: 15, unique: true })
   ci: string;
 
+  @Column({ nullable: true, length: 100, unique: true })
+  email: string;
+
   @Column({ nullable: false, default: true })
   active: boolean;
 
