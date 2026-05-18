@@ -1,19 +1,19 @@
--- E: En espera
--- P: En proceso 
--- C: Completado
--- X: Cancelado
-CREATE TYPE washing_status AS ENUM ('E', 'P', 'C', 'X');
+-- W: En espera
+-- I: En proceso 
+-- D: Completado
+-- C: Cancelado
+CREATE TYPE washing_status AS ENUM ('W', 'I', 'D', 'C');
 
--- P = Pendiente
--- G = Pagado
--- X = Cancelado
-CREATE TYPE status_payments AS ENUM ('P', 'G', 'X');
+-- W = Waiting
+-- P = Paid
+-- C = Cancelled
+CREATE TYPE status_payments AS ENUM ('W', 'P', 'C');
 
 -- C = Create  
 -- U = Update
 -- D = Delete
 -- R = Read
-CREATE TYPE actions_permissions AS ENUM('C','U','D','R');
+CREATE TYPE actions_permissions AS ENUM('C','R','U','D');
 
 -- P = Producto
 -- S = Servicio

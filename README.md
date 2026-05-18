@@ -5,9 +5,11 @@ Esta es la API centralizada para la gestión integral de autolavados. El sistema
 ### 📑 Índice
 
 - [Stack tecnológico](#️-stack-tecnológico)
+- [Base de datos de AquaGloss Pro](#-base-de-datos-de-aquagloss-pro)    
 - [Instalación](#-instalación)
 - [Configuración inicial](#-configuración-inicial)
 - [Guía de inicio rápido](#-guía-de-inicio-rápido)
+- [Usuario Administrador](#-usuario-administrador)
 - [Documentación](#-documentación)
 
 <br>
@@ -16,21 +18,34 @@ Esta es la API centralizada para la gestión integral de autolavados. El sistema
 
 <div align="center">
 
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
-![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=JSON%20web%20tokens&logoColor=white)
-![NodeJS](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
-![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)
-![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)
-![Jest](https://img.shields.io/badge/Jest-C21325?style=for-the-badge&logo=jest&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![TypeORM](https://img.shields.io/badge/TypeORM-000000?style=for-the-badge&logo=typeorm&logoColor=white)
+
+<p align="center">
+  <img src="https://skillicons.dev/icons?i=typescript,nestjs,postgresql,docker,git,jest,bash" height="50" />
+</p>
 
 </div>
 
+# ⚙️ Base de datos de AquaGloss Pro
+
 ### ⌨️ Codigo de la Base de datos
 
-Puedes ver el codigo de la base de datos [📍Aqui](https://github.com/RitoTorri/Backend-Gestion-Autolavados/blob/master/database/DB.sql)
+Puedes ver el codigo de la base de datos [📍Aqui](https://github.com/RitoTorri/AquaGlossPro-Backend/tree/master/src/database/SQL)
+
+### 🔑 Composición de los TOKENS (JWT)
+
+Este sistema utiliza JWT para autenticar y autorizar las peticiones. Cada petición recibe un token JWT que contiene información sobre el usuario y su permisos. El token se genera automáticamente al inicar sesión.
+
+**Composición del TOKEN ACCESS:**
+
+```json
+{
+  "userID":"1",
+  "roleId":"1",
+  "iat": 1516239022,
+  "exp": 1516242622,
+  "TOKEN_ACCESS":clave_secreta
+}
+```
 
 <br>
 
@@ -38,13 +53,10 @@ Puedes ver el codigo de la base de datos [📍Aqui](https://github.com/RitoTorri
 
 ```bash
 # Clona el repositorio
-git clone https://github.com/RitoTorri/Backend-Gestion-Autolavados
+git clone https://github.com/RitoTorri/AquaGlossPro-Backend
 
 # Entra al directorio
-cd Backend-Gestion-Autolavados
-
-# Instala las dependencias
-npm install
+cd AquaGlossPro-Backend
 ```
 
 <br>
@@ -55,24 +67,24 @@ npm install
 
 Debes renombrar `.env.example` a `.env` y configurar:
 
-| Variable                | Descripción                                         | Ejemplo                 |
-| ----------------------- | --------------------------------------------------- | ----------------------- |
-| `PORT`                  | Puerto de la aplicación                             | `3000`                  |
-| `API_RATE_LIMIT_MAX`    | Cantidad máxima de peticiones por ventana de tiempo | `100`                   |
-| `API_RATE_LIMIT_WINDOW` | Ventana de tiempo para rate limiting (ms)           | `900000`                |
-| `TOKEN_ACCESS`          | Llave secreta para tokens JWT                       | `tu_clave_secreta`      |
-| `POSTGRES_HOST`         | Host de la base de datos                            | `localhost`             |
-| `POSTGRES_PORT`         | Puerto de PostgreSQL                                | `5432`                  |
-| `POSTGRES_USER`         | Usuario de la base de datos                         | `postgres`              |
-| `POSTGRES_PASSWORD`     | Contraseña de la base de datos                      | `postgres123`           |
-| `POSTGRES_DB`           | Nombre de la base de datos                          | `sistema_ventas`        |
-| `FRONTEND_URL`          | URL del frontend para CORS                          | `http://localhost:3543` |
+| Variable | Descripción | Ejemplo |
+|----------|-------------|---------|
+| `PORT` | Puerto de la aplicación | `3000` |
+| `API_RATE_LIMIT_MAX` | Cantidad máxima de peticiones por ventana de tiempo | `100` |
+| `API_RATE_LIMIT_WINDOW` | Ventana de tiempo para rate limiting (ms) | `900000` |
+| `TOKEN_ACCESS` | Llave secreta para tokens JWT | `tu_clave_secreta` |
+| `POSTGRES_HOST` | Host de la base de datos | `localhost` |
+| `POSTGRES_PORT` | Puerto de PostgreSQL | `5432` |
+| `POSTGRES_USER` | Usuario de la base de datos | `postgres` |
+| `POSTGRES_PASSWORD` | Contraseña de la base de datos | `postgres123` |
+| `POSTGRES_DB` | Nombre de la base de datos | `Aqua Gloss Pro` |
+| `FRONTEND_URL` | URL del frontend para CORS | `http://localhost:3543` |
 
 <br>
 
 # 🚀 Guía de inicio rápido
 
-Este proyecto incluye un script de inicialización (`script.sh`) que configura la base de datos y arranca el servidor.  
+Este proyecto incluye scripts de inicialización que configura la base de datos y arranca el servidor.  
 **Su comportamiento varía según el entorno:**
 
 - En **modo desarrollo**, solo debe ejecutarse **una vez** para preparar la base de datos.
@@ -90,40 +102,38 @@ docker compose build
 docker compose up
 ```
 
-> El script `script.sh` se ejecuta automáticamente dentro del contenedor y deja el servidor listo en modo producción.
-
 ### 💻 Entorno local (desarrollo)
 
-#### 🔁 Primera vez
-
-Si es la primera vez que ejecutas el proyecto:
+**Es recomendado que se ejecute solo una vez**. Para configurar el proyecto de manera local, ejecuta los siguientes comandos:
 
 ```bash
-# Compilar el proyecto
-npm run build
+# Entra al directorio
+cd AquaGlossPro-Backend
 
-# Ejecutar el script de inicialización
-./script.sh
-```
+# instala las dependencias
+npm install
 
-> ⚠️ Este script inicia el servidor en **modo producción**.  
-> Una vez que haya hecho su trabajo (configurar la base de datos y arrancar), puedes detenerlo con `Ctrl + C` y continuar con el modo desarrollo.
+# Ejecutar el seeding de la base de datos
+./init_db_local.sh
 
-#### 🔁 Ejecuciones posteriores
-
-Después de haber ejecutado el script al menos una vez:
-
-```bash
-# Iniciar el servidor con hot-reload
+# Ejecutar el servidor con hot-reload
 npm run start:dev
 ```
 
-### 📌 Resumen
+### 📌 Explicación de los scripts
 
-| Entorno       | Comandos                                                                                |
-| ------------- | --------------------------------------------------------------------------------------- |
-| 🐳 Producción | `docker compose build` → `docker compose up`                                            |
-| 💻 Desarrollo | **Primera vez:** `npm run build` → `./script.sh`<br>**Siguientes:** `npm run start:dev` |
+- `init_db_local.sh`: Este escript se encarga de crear la base de datos en caso de que no exista y ejecuta los archivos SQL de la ruta `/src/database/SQL` para crear los enums, tablas, views y functions necesarios para que el codigo funcione. Además, ejecuta el seeding de la base de datos para crear los roles, permisos y el usuario administrador.
+- `init_db_docker.sh`: Ejecuta el seeding de la base de datos para crear los roles, permisos y el usuario administrador.
+
+<br>
+
+# 👨‍💼 Usuario Administrador
+
+El usuario administrador se crea en los scripts de inicialización, Las credenciales del usuario administrador son:
+
+| Usuario | Contraseña |
+|---------|------------|
+| admin@admin.com   | admin      |
 
 <br>
 

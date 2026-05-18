@@ -1,8 +1,9 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { PaginationDto } from '../../shared/dto/pagination.dto';
 import { Role } from './entities/role.entity';
 
 @Injectable()
@@ -20,16 +21,66 @@ export class RolesService {
     return await this.roleRepository.save(newRole);
   }
 
-  async findAll(active: boolean = true): Promise<{ data: Role[]; totals: any }> {
-    // 1. Obtener los roles
+  async findAll(paginationDto: PaginationDto): Promise<{ data: any[]; totals: any }> {
+    const whereConditions: any = {
+      active: paginationDto.active,
+    };
+
+    // 2. Si existe el parámetro de búsqueda, lo agregamos al MISMO objeto (AND)
+    if (paginationDto.param) {
+      whereConditions.name = ILike(`%${paginationDto.param}%`);
+    }
+
+    // 1. Obtener los roles con sus relaciones
     const roles = await this.roleRepository.find({
-      where: { active: active },
-      select: ['roleId', 'name', 'active'],
+      where: whereConditions,
       order: { roleId: 'ASC' },
+      relations: {
+        rolesPermissions: {
+          permission: {
+            modul: true,
+          },
+        },
+      },
+      take: paginationDto.limit,
+      skip: paginationDto.page - 1,
       withDeleted: true,
     });
 
-    // 2. Obtener totales globales
+    // 2. Transformar la estructura para agrupar por módulo
+    const formattedRoles = roles.map((role) => {
+      const modulesMap = new Map();
+
+      role.rolesPermissions.forEach((rp) => {
+        const moduleName = rp.permission.modul.name;
+        const moduleId = rp.permission.modul.moduleId;
+
+        if (!modulesMap.has(moduleId)) {
+          modulesMap.set(moduleId, {
+            moduleId: moduleId,
+            moduleName: moduleName,
+            permissions: [],
+          });
+        }
+
+        // Agregamos el permiso actual al módulo correspondiente
+        modulesMap.get(moduleId).permissions.push({
+          permissionId: rp.permission.permissionId,
+          type: rp.permission.typePermission, // C, R, U, D
+          active: rp.active,
+        });
+      });
+
+      return {
+        roleId: role.roleId,
+        name: role.name,
+        active: role.active,
+        // Convertimos el Map a un Array para el JSON final
+        modules: Array.from(modulesMap.values()),
+      };
+    });
+
+    // 3. Obtener totales globales (Tu lógica de SQL se mantiene igual)
     const totalsQuery = `
         SELECT 
             COUNT(*) AS total_general,
@@ -41,7 +92,7 @@ export class RolesService {
     const globalTotals = totalsResult[0];
 
     return {
-      data: roles,
+      data: formattedRoles,
       totals: {
         general: parseInt(globalTotals.total_general) || 0,
         active: parseInt(globalTotals.total_active) || 0,

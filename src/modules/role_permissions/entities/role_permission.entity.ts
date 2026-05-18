@@ -1,13 +1,13 @@
 import {
-    Entity,
-    PrimaryGeneratedColumn,
-    Column,
-    CreateDateColumn,
-    UpdateDateColumn,
-    DeleteDateColumn,
-    ManyToOne,
-    JoinColumn,
-    Unique
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
+  ManyToOne,
+  JoinColumn,
+  Unique,
 } from 'typeorm';
 import { Role } from '../../../modules/roles/entities/role.entity'; // Ajusta las rutas
 import { Permission } from '../../../modules/permissions/entities/permission.entity';
@@ -15,40 +15,39 @@ import { Permission } from '../../../modules/permissions/entities/permission.ent
 @Entity('roles_permissions')
 @Unique(['roleId', 'permissionId']) // Garantiza que un rol no tenga el mismo permiso dos veces
 export class RolePermission {
+  @PrimaryGeneratedColumn()
+  rolePermissionId: number;
 
-    @PrimaryGeneratedColumn()
-    rolePermissionId: number;
+  // Declaramos la columna física para manejar IDs directamente
+  @Column()
+  roleId: number;
 
-    // Declaramos la columna física para manejar IDs directamente
-    @Column()
-    roleId: number;
+  @Column()
+  permissionId: number;
 
-    @Column()
-    permissionId: number;
+  @Column({ default: true })
+  active: boolean;
 
-    @Column({ default: true })
-    active: boolean;
+  // Auditoría
+  @CreateDateColumn({ type: 'timestamptz' })
+  createdAt: Date;
 
-    // Auditoría
-    @CreateDateColumn({ type: 'timestamptz' })
-    createdAt: Date;
+  @UpdateDateColumn({ type: 'timestamptz', nullable: true })
+  updatedAt: Date;
 
-    @UpdateDateColumn({ type: 'timestamptz', nullable: true })
-    updatedAt: Date;
+  @DeleteDateColumn({ type: 'timestamptz', nullable: true })
+  deletedAt: Date | null;
 
-    @DeleteDateColumn({ type: 'timestamptz', nullable: true })
-    deletedAt: Date | null;
+  // Relaciones
+  @ManyToOne(() => Role, (role) => role.rolesPermissions, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'roleId' })
+  role: Role;
 
-    // Relaciones
-    @ManyToOne(() => Role, (role) => role.rolesPermissions, {
-        onDelete: 'CASCADE',
-    })
-    @JoinColumn({ name: 'roleId' })
-    role: Role;
-
-    @ManyToOne(() => Permission, {
-        onDelete: 'CASCADE',
-    })
-    @JoinColumn({ name: 'permissionId' })
-    permission: Permission;
+  @ManyToOne(() => Permission, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'permissionId' })
+  permission: Permission;
 }

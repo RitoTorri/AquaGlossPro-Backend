@@ -1,35 +1,44 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
+  OneToMany,
+} from 'typeorm';
+import { Purchase } from '../../purchases/entities/purchase.entity';
 
 @Entity('suppliers')
 export class Supplier {
-    @PrimaryGeneratedColumn()
-    supplierId: number;
+  @PrimaryGeneratedColumn()
+  supplierId: number;
 
-    @Column({ nullable: false, length: 40 })
-    names: string;
+  @Column({ nullable: false, length: 40, unique: true })
+  companyName: string;
 
-    @Column({ nullable: false, length: 40 })
-    lastnames: string;
+  @Column({ nullable: false, length: 50, unique: true })
+  email: string;
 
-    @Column({ nullable: false, length: 50 })
-    email: string;
-    
-    @Column({ nullable: false, length: 25 })
-    numberPhone: string;
+  @Column({ nullable: false, length: 25, unique: true })
+  numberPhone: string;
 
-    @Column({nullable: false, length: 20})
-    ci: string;
-    
-    @Column({ nullable: false, default: true })
-    active : boolean;
+  @Column({ nullable: false, length: 20, unique: true })
+  rif: string;
 
-    // Auditoria
-    @CreateDateColumn({ type: 'timestamptz' })
-    createdAt: Date;
+  @Column({ nullable: false, default: true })
+  active: boolean;
 
-    @UpdateDateColumn({ type: 'timestamptz', default: null })
-    updatedAt: Date;
+  // Auditoria
+  @CreateDateColumn({ type: 'timestamptz' })
+  createdAt: Date;
 
-    @DeleteDateColumn({ type: 'timestamptz', default: null })
-    deletedAt: Date | null;
+  @UpdateDateColumn({ type: 'timestamptz', default: null })
+  updatedAt: Date;
+
+  @DeleteDateColumn({ type: 'timestamptz', default: null })
+  deletedAt: Date | null;
+
+  @OneToMany(() => Purchase, (purchase) => purchase.supplier)
+  purchases: Purchase[];
 }

@@ -1,5 +1,5 @@
 export enum TypeUnit {
-    LITERS = 'L',
-    GALLONS = 'G',
-    UNITS = 'U',
+  LITERS = 'L',
+  GALLONS = 'G',
+  UNITS = 'U',
 }

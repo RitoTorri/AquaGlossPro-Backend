@@ -1,28 +1,27 @@
 services:
-  db-aqua-gloss-pro:
+  db-aqua-gloss:
     image: postgres:17-alpine
-    container_name: db-aqua-gloss-pro-container
     ports:
-      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
+      - '${POSTGRES_PORT}:${POSTGRES_PORT}'
     env_file:
       - .env
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
       interval: 5s
       timeout: 5s
       retries: 5
       start_period: 30s
     volumes:
       - postgres_data:/var/lib/postgresql/data
-  api-aqua-gloss-pro:
+      - ./src/database/SQL:/docker-entrypoint-initdb.d
+  api-aqua-gloss:
     build: .
-    container_name: api-aqua-gloss-pro-container
     ports:
-      - "${PORT}:${PORT}"
+      - '${PORT}:${PORT}'
     env_file:
       - .env
     depends_on:
-      db-aqua-gloss-pro:
+      db-aqua-gloss:
         condition: service_healthy
 volumes:
   postgres_data:

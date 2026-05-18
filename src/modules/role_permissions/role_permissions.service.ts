@@ -2,7 +2,6 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateRolePermissionDto } from './dto/create-role_permission.dto';
-import { UpdateRolePermissionDto } from './dto/update-role_permission.dto';
 import { RolePermission } from './entities/role_permission.entity';
 import { RolesService } from '../roles/roles.service';
 import { PermissionsService } from '../permissions/permissions.service';
@@ -18,23 +17,41 @@ export class RolePermissionsService {
   ) {}
 
   async create(createRolePermissionDto: CreateRolePermissionDto) {
-    // Validar existencia del permiso + rol
-    const existRolePermission = await this.findByRoleAndPermission(
-      createRolePermissionDto.roleId,
-      createRolePermissionDto.permissionId,
-    );
-    if (existRolePermission) throw new ConflictException('El rol ya tiene este permiso asignado');
+    const { roleId, permissions } = createRolePermissionDto;
 
-    // Validar existencia de role y permiso
-    const existRole = await this.rolesService.findById(createRolePermissionDto.roleId);
-    if (!existRole) throw new NotFoundException('No existe un rol con el Id proporcionado');
+    // 1. Validar existencia del rol una sola vez
+    const existRole = await this.rolesService.findById(roleId);
+    if (!existRole) throw new NotFoundException(`No existe un rol con el Id ${roleId}`);
 
-    const existPermission = await this.permissionsService.findById(createRolePermissionDto.permissionId);
-    if (!existPermission) throw new NotFoundException('No existe un permiso con el Id proporcionado');
+    // 2. Validar permisos (Usamos for...of o Promise.all para que realmente espere)
+    for (const permissionId of permissions) {
+      // Validar si el permiso existe y está activo
+      const existPermission = await this.permissionsService.findById(permissionId);
+      if (!existPermission) {
+        throw new NotFoundException(`No existe un permiso con el Id ${permissionId}`);
+      }
+      if (!existPermission.active) {
+        throw new ConflictException(`El permiso ${permissionId} está inactivo`);
+      }
 
-    // Guardar en la base de datos
-    const rolePermission = this.rolePermissionsRepository.create(createRolePermissionDto);
-    return await this.rolePermissionsRepository.save(rolePermission);
+      // Validar si ya existe la relación para evitar duplicados
+      const existRolePermission = await this.findByRoleAndPermission(roleId, permissionId);
+      if (existRolePermission) {
+        throw new ConflictException(`El rol ya tiene el permiso ${permissionId} asignado`);
+      }
+    }
+
+    // 3. Crear los registros para la tabla intermedia
+    // Mapeamos el array de IDs a objetos de la entidad RolePermission
+    const newRolePermissions = permissions.map((permissionId) => {
+      return this.rolePermissionsRepository.create({
+        roleId: roleId,
+        permissionId: permissionId,
+      });
+    });
+
+    // 4. Guardar todos de golpe (Bulk insert)
+    return await this.rolePermissionsRepository.save(newRolePermissions);
   }
 
   async findAll(paginationDto: PaginationDto) {
@@ -66,7 +83,7 @@ export class RolePermissionsService {
 
     // Si param existe, buscar en role.name o permission.typePermission
     if (param && param.trim() !== '') {
-      whereCondition += ` AND (r.name ILIKE $4 OR p."typePermission" ILIKE $4)`;
+      whereCondition += ` AND (r.name LIKE $4)`;
       parameters.push(`%${param.toUpperCase()}%`);
     }
 
@@ -124,40 +141,6 @@ export class RolePermissionsService {
         },
       },
     };
-  }
-
-  async update(id: number, updateRolePermissionDto: UpdateRolePermissionDto) {
-    const rolePermissionExists = await this.findById(id);
-    if (!rolePermissionExists) throw new NotFoundException('No existe un RolPermission con el Id proporcionado');
-    if (!rolePermissionExists.active)
-      throw new ConflictException('RolPermission está inactivo. No puede ser actualizado');
-
-    if (updateRolePermissionDto.permissionId) {
-      const permissionExists = await this.permissionsService.findById(updateRolePermissionDto.permissionId);
-      if (!permissionExists) throw new NotFoundException('No existe un permiso con el Id proporcionado');
-      if (!permissionExists.active) throw new ConflictException('Permiso está inactivo. No puede ser asignado');
-    }
-
-    if (updateRolePermissionDto.roleId) {
-      const roleExists = await this.rolesService.findById(updateRolePermissionDto.roleId);
-      if (!roleExists) throw new NotFoundException('Rol no encontrado');
-      if (!roleExists.active) throw new ConflictException('Rol está inactivo');
-    }
-
-    // Check if the new combination already exists
-    if (updateRolePermissionDto.roleId && updateRolePermissionDto.permissionId) {
-      const exist = await this.findByRoleAndPermission(
-        updateRolePermissionDto.roleId,
-        updateRolePermissionDto.permissionId,
-      );
-      if (exist && exist.rolePermissionId !== id) throw new ConflictException('El rol ya tiene este permiso asignado');
-    }
-
-    const updateRolePermission = await this.rolePermissionsRepository.merge(
-      rolePermissionExists,
-      updateRolePermissionDto,
-    );
-    return await this.rolePermissionsRepository.save(updateRolePermission);
   }
 
   async remove(id: number) {

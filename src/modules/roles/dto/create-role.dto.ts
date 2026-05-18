@@ -15,6 +15,6 @@ export class CreateRoleDto {
     @MinLength(3)
     @MaxLength(50)
     @Matches(/^[a-zA-Z/s]*$/)
-    @Transform(({ value }) => value.toLowerCase())
+    @Transform(({ value }) => value.toUpperCase())
     name: string;
 }

@@ -27,6 +27,9 @@ import { CombosModule } from './modules/combos/combos.module';
 import { CombosServicesModule } from './modules/combos-services/combos-services.module';
 import { ReportsModule } from './modules/reports/reports.module';
 
+import { PurchasesModule } from './modules/purchases/purchases.module';
+import { SalesModule } from './modules/sales/sales.module';
+import { SalesItemsModule } from './modules/sales_items/sales_items.module';
 
 @Module({
   imports: [
@@ -79,6 +82,12 @@ import { ReportsModule } from './modules/reports/reports.module';
     CombosModule,
 
     ReportsModule,
+    
+    PurchasesModule,
+
+    SalesModule,
+
+    SalesItemsModule
   ],
   controllers: [PermissionsController],
   providers: [

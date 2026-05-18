@@ -58,7 +58,6 @@ export class PermissionsService {
     const { limit, page, active, param } = paginationDto;
     const offset = (page - 1) * limit;
 
-    // 1. Obtener totales globales usando QueryBuilder
     const globalTotals = await this.dataSource
       .getRepository(Permission)
       .createQueryBuilder('p')
@@ -69,43 +68,27 @@ export class PermissionsService {
       ])
       .getRawOne();
 
-    // 2. Obtener datos paginados con filtros
     const query = this.dataSource
       .getRepository(Permission)
       .createQueryBuilder('p')
       .leftJoinAndSelect('p.modul', 'm')
       .select(['p.permissionId', 'p.typePermission', 'p.active', 'm.moduleId', 'm.name'])
       .where('p.active = :active', { active })
-      .orderBy('p.permissionId', 'ASC')
-      .take(limit)
-      .skip(offset);
+      .orderBy('p.permissionId', 'ASC');
 
-    // Si param existe, buscar en typePermission (puedes ajustar los campos)
     if (param && param.trim() !== '') {
-      query.andWhere('p.typePermission ILIKE :param', { param: `%${param.toUpperCase()}%` });
+      query.andWhere('(p.typePermission ILIKE :param OR m.name ILIKE :param)', { param: `%${param}%` });
     }
 
-    const result = await query.getRawMany();
-
-    // Mapear resultados manteniendo la estructura anidada de modul
-    const permissions = result.map((row) => ({
-      permissionId: row.p_permissionId,
-      typePermission: row.p_typePermission,
-      active: row.p_active,
-      modul: {
-        moduleId: row.m_moduleId,
-        name: row.m_name,
-      },
-    }));
+    const [permissions, filteredCount] = await query.take(limit).skip(offset).getManyAndCount();
 
     return {
       data: permissions,
       meta: {
         itemPerPage: limit,
         currentPage: page,
-        totalPages: paginationDto.active
-          ? Math.ceil((parseInt(globalTotals.total_active) || 0) / limit)
-          : Math.ceil((parseInt(globalTotals.total_inactive) || 0) / limit),
+        totalItemsFiltered: filteredCount,
+        totalPages: Math.ceil(filteredCount / limit),
         totals: {
           general: parseInt(globalTotals.total_general) || 0,
           active: parseInt(globalTotals.total_active) || 0,

@@ -55,7 +55,6 @@ export class PaymentsMethodsController {
   @paymentsMethodsSwagger.updatePaymentMethod()
   @HttpCode(204)
   async update(
-    @Res() res: Response,
     @Param('id', ParseIntPipe) id: string,
     @Body() updatePaymentMethodDto: UpdatePaymentMethodDto,
   ) {

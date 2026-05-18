@@ -17,14 +17,14 @@ RUN npm ci --only=production
 COPY --from=builder /app/dist ./dist
 
 # 3. COPIAR EL SCRIPT ANTES DE CAMBIAR DE USUARIO
-COPY ./script.sh /app/script.sh
+COPY ./init_db_docker.sh /app/init_db_docker.sh
 
 # 4. DAR PERMISOS (Como root, que es el default aquí)
-RUN chmod +x /app/script.sh
+RUN chmod +x /app/init_db_docker.sh
 
 # 5. CAMBIAR EL DUEÑO DE LOS ARCHIVOS AL USUARIO NODE
 # Esto es vital porque si no, el usuario 'node' no podrá ejecutar nada en /app
-RUN chown node:node /app/script.sh
+RUN chown node:node /app/init_db_docker.sh
 
 # 6. AHORA SÍ, PASAMOS AL USUARIO SIN PRIVILEGIOS
 USER node
@@ -32,4 +32,4 @@ USER node
 EXPOSE 3000
 
 # Usamos el script como el comando principal
-CMD ["/bin/sh", "/app/script.sh"]
+CMD ["/bin/sh", "/app/init_db_docker.sh"]
