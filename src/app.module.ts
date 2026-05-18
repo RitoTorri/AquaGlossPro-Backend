@@ -29,6 +29,7 @@ import { PurchasesModule } from './modules/purchases/purchases.module';
 import { SalesModule } from './modules/sales/sales.module';
 import { SalesItemsModule } from './modules/sales_items/sales_items.module';
 import { MailModule } from './providers/mail/mail.module';
+import { StockModule } from './modules/stock/stock.module';
 
 @Module({
   imports: [
@@ -86,7 +87,9 @@ import { MailModule } from './providers/mail/mail.module';
 
     SalesItemsModule,
 
-    MailModule
+    MailModule,
+
+    StockModule
   ],
   controllers: [PermissionsController],
   providers: [

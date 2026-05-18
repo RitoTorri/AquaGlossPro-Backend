@@ -112,9 +112,9 @@ export class ProductsService {
     const products = result.map((row) => ({
       productId: row.productId,
       name: row.name,
-      unitCostLiter: parseFloat(row.unitCostLiter),
-      currentStock: parseInt(row.currentStock),
-      minStock: parseInt(row.minStock),
+      unitCostLiter: row.unitCostLiter,
+      currentStock: row.currentStock,
+      minStock: row.minStock,
       unitType: row.unitType,
       active: row.active,
       category: row.category,

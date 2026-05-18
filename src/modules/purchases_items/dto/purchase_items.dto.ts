@@ -7,11 +7,11 @@ export class CreatePurchaseItemDto {
   @IsInt()
   productId: number;
 
-  @ApiProperty({ description: 'Cantidad comprada', example: 10 })
+  @ApiProperty({ description: 'Cantidad comprada', example: 10.5 })
   @IsNotEmpty()
-  @IsInt()
+  @IsNumber({}, { message: 'La cantidad debe ser un número (puede incluir decimales)' }) // ¡EL CAMBIO MÁGICO!
   @IsPositive()
-  @Min(1)
+  @Min(0.01, { message: 'La cantidad mínima es 0.01' })
   quantity: number;
 
   @ApiProperty({ description: 'Costo unitario acordado con el proveedor', example: 25.5 })
