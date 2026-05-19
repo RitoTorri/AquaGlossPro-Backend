@@ -17,6 +17,7 @@ export class CommissionsService {
   async findAll(paginationDto: PaginationDto, search?: string) {
     const { limit = 10, page = 1, param } = paginationDto;
 
+    // 1. Crear query base
     const query = this.repository
       .createQueryBuilder('c')
       .select([
@@ -50,18 +51,21 @@ export class CommissionsService {
       .addGroupBy('c."statusPaymentConmission"')
       .addGroupBy('c."paymentDate"');
 
-    // 4. Paginación y ejecución
+    // 2. Clonar la query para contar (ANTES de aplicar paginación)
+    const countQuery = query.clone();
+
+    // 3. Obtener el total de resultados agrupados
+    const totalResult = await countQuery.getRawMany();
+    const total = totalResult.length;
+
+    // 4. Paginación y ejecución de datos
     const data = await query
       .offset((page - 1) * limit)
       .limit(limit)
       .orderBy('e.names', 'ASC')
       .getRawMany();
 
-    // 5. Totales para la meta
-    const totalResults = await query.getRawMany();
-    const total = totalResults.length;
-
-    // 6. Conteos globales de estatus
+    // 5. Conteos globales de estatus
     const [paidCount, cancelledCount, pendingCount] = await Promise.all([
       this.repository.count({ where: { statusPaymentConmission: StatusPayments.PAID } }),
       this.repository.count({ where: { statusPaymentConmission: StatusPayments.CANCELLED } }),
