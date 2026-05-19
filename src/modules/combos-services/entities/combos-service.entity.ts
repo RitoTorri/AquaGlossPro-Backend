@@ -9,7 +9,7 @@ import {
   DeleteDateColumn,
 } from 'typeorm';
 import { Combo } from '../../combos/entities/combo.entity';
-import { ServicesTypeVehicle } from '../../services-type-vehicle/entities/services-type-vehicle.entity';
+import { Service } from '../../services/entities/service.entity'; // ← Cambio importante
 
 @Entity('combos_services')
 export class CombosServiceEntity {
@@ -19,8 +19,8 @@ export class CombosServiceEntity {
   @Column({ name: 'comboId', nullable: false })
   comboId: number;
 
-  @Column({ name: 'servicesTypeVehicleId', nullable: false })
-  servicesTypeVehicleId: number;
+  @Column({ name: 'serviceId', nullable: false }) // ← antes 'servicesTypeVehicleId'
+  serviceId: number;
 
   @Column({ default: true })
   active: boolean;
@@ -38,7 +38,7 @@ export class CombosServiceEntity {
   @JoinColumn({ name: 'comboId' })
   combo: Combo;
 
-  @ManyToOne(() => ServicesTypeVehicle, (stv) => stv.combosServices)
-  @JoinColumn({ name: 'servicesTypeVehicleId' })
-  servicesTypeVehicle: ServicesTypeVehicle;
+  @ManyToOne(() => Service, (service) => service.combosServices) // ← relación con Service
+  @JoinColumn({ name: 'serviceId' })
+  service: Service;
 }

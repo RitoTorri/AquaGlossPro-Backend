@@ -10,13 +10,13 @@ export class CreateComboDto {
     @MaxLength(40)
     @Matches(/^[a-zA-Z0-9\s]+$/, { message: 'El nombre solo puede contener letras, números y espacios' })
     @Transform(({ value }) => value.toUpperCase())
-    name!: string;  // ✅ añadido '!'
+    name!: string;
 
     @ApiProperty({ example: 15.5, minimum: 0, maximum: 100 })
     @IsNumber()
     @Min(0)
     @Max(100)
-    discountPercentage!: number;  // ✅ añadido '!'
+    discountPercentage!: number;
 
     @ApiProperty({ example: true, default: false })
     @IsBoolean()
@@ -30,9 +30,9 @@ export class CreateComboDto {
     @IsNotEmpty({ message: 'La fecha de expiración es obligatoria cuando el combo es una promoción' })
     expirationDate?: Date;
 
-    @ApiProperty({ example: [1, 2, 3] })
+    @ApiProperty({ example: [1, 2, 3], description: 'IDs de servicios' })
     @IsArray()
     @ArrayNotEmpty()
     @IsInt({ each: true })
-    servicesTypeVehicleIds!: number[];  // ✅ añadido '!'
+    serviceIds!: number[];  // ✅ Cambiado
 }

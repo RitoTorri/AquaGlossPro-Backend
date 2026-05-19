@@ -5,7 +5,7 @@ import { Combo } from './entities/combo.entity';
 import { CreateComboDto } from './dto/create-combo.dto';
 import { UpdateComboDto } from './dto/update-combo.dto';
 import { CombosServiceEntity } from '../combos-services/entities/combos-service.entity';
-import { ServicesTypeVehicleService } from '../services-type-vehicle/services-type-vehicle.service';
+import { ServicesService } from '../services/services.service';  // ✅ Cambiado
 
 @Injectable()
 export class CombosService {
@@ -14,17 +14,14 @@ export class CombosService {
         private readonly combosRepository: Repository<Combo>,
         @InjectRepository(CombosServiceEntity)
         private readonly combosServicesRepository: Repository<CombosServiceEntity>,
-        private readonly servicesTypeVehicleService: ServicesTypeVehicleService,
+        private readonly servicesService: ServicesService,  // ✅ Cambiado
         private readonly dataSource: DataSource,
     ) {}
 
-    // ==================== CREAR COMBO ====================
     async create(createComboDto: CreateComboDto): Promise<Combo> {
-        // Validar nombre único
         const existing = await this.findByName(createComboDto.name);
         if (existing) throw new ConflictException('Ya existe un combo con ese nombre');
 
-        // Validar fecha de expiración para promociones
         let expirationDateValue: Date | null = null;
         if (createComboDto.isPromotion) {
             if (!createComboDto.expirationDate) {
@@ -37,9 +34,9 @@ export class CombosService {
             expirationDateValue = createComboDto.expirationDate;
         }
 
-        // Verificar que todos los servicios existan
-        for (const stvId of createComboDto.servicesTypeVehicleIds) {
-            await this.servicesTypeVehicleService.findOne(stvId);
+        // ✅ Verificar que todos los servicios existan
+        for (const serviceId of createComboDto.serviceIds) {
+            await this.servicesService.findById(serviceId);
         }
 
         const queryRunner = this.dataSource.createQueryRunner();
@@ -47,7 +44,6 @@ export class CombosService {
         await queryRunner.startTransaction();
 
         try {
-            // Crear combo
             const combo = queryRunner.manager.create(Combo, {
                 name: createComboDto.name,
                 discountPercentage: createComboDto.discountPercentage,
@@ -56,11 +52,11 @@ export class CombosService {
             });
             const savedCombo = await queryRunner.manager.save(combo);
 
-            // Guardar relaciones con servicios
-            const combosServices = createComboDto.servicesTypeVehicleIds.map(stvId =>
+            // ✅ Guardar relaciones con servicios (usando serviceId)
+            const combosServices = createComboDto.serviceIds.map(serviceId =>
                 queryRunner.manager.create(CombosServiceEntity, {
                     comboId: savedCombo.comboId,
-                    servicesTypeVehicleId: stvId,
+                    serviceId: serviceId,
                 })
             );
             await queryRunner.manager.save(combosServices);
@@ -75,7 +71,6 @@ export class CombosService {
         }
     }
 
-    // ==================== LISTAR COMBOS ====================
     async findAll(active: boolean, page: number, limit: number, param: string): Promise<{ data: Combo[]; meta: any }> {
         await this.deactivateExpiredCombos();
 
@@ -85,12 +80,7 @@ export class CombosService {
 
         const [data, total] = await this.combosRepository.findAndCount({
             where,
-            relations: [
-                'combosServices',
-                'combosServices.servicesTypeVehicle',
-                'combosServices.servicesTypeVehicle.service',
-                'combosServices.servicesTypeVehicle.typeVehicle',
-            ],
+            relations: ['combosServices', 'combosServices.service'], // ✅ Cambiado: 'combosServices.service'
             take: limit,
             skip: (page - 1) * limit,
             order: { comboId: 'ASC' },
@@ -116,35 +106,26 @@ export class CombosService {
         };
     }
 
-    // ==================== OBTENER UN COMBO ====================
     async findOne(id: number): Promise<Combo> {
         await this.deactivateExpiredCombos();
         const combo = await this.combosRepository.findOne({
             where: { comboId: id },
-            relations: [
-                'combosServices',
-                'combosServices.servicesTypeVehicle',
-                'combosServices.servicesTypeVehicle.service',
-                'combosServices.servicesTypeVehicle.typeVehicle',
-            ],
+            relations: ['combosServices', 'combosServices.service'], // ✅ Cambiado
             withDeleted: true,
         });
         if (!combo) throw new NotFoundException(`Combo con ID ${id} no encontrado`);
         return combo;
     }
 
-    // ==================== ACTUALIZAR COMBO ====================
     async update(id: number, updateComboDto: UpdateComboDto): Promise<Combo> {
         const combo = await this.findOne(id);
         if (!combo.active) throw new ConflictException('El combo está inactivo');
 
-        // Validar nombre único si cambia
         if (updateComboDto.name && updateComboDto.name !== combo.name) {
             const existing = await this.findByName(updateComboDto.name);
             if (existing) throw new ConflictException('Ya existe un combo con ese nombre');
         }
 
-        // Validar promoción y fecha
         const isPromotion = updateComboDto.isPromotion ?? combo.isPromotion;
         let expirationDateValue: Date | null = combo.expirationDate;
         if (updateComboDto.expirationDate !== undefined) {
@@ -163,10 +144,10 @@ export class CombosService {
             expirationDateValue = null;
         }
 
-        // Validar servicios si se envían
-        if (updateComboDto.servicesTypeVehicleIds) {
-            for (const stvId of updateComboDto.servicesTypeVehicleIds) {
-                await this.servicesTypeVehicleService.findOne(stvId);
+        // ✅ Validar servicios si se envían
+        if (updateComboDto.serviceIds) {
+            for (const serviceId of updateComboDto.serviceIds) {
+                await this.servicesService.findById(serviceId);
             }
         }
 
@@ -175,18 +156,17 @@ export class CombosService {
         await queryRunner.startTransaction();
 
         try {
-            // Actualizar datos del combo
             Object.assign(combo, updateComboDto);
             combo.expirationDate = expirationDateValue;
             const updatedCombo = await queryRunner.manager.save(combo);
 
-            // Actualizar relaciones si se envió la lista de servicios
-            if (updateComboDto.servicesTypeVehicleIds) {
+            // ✅ Actualizar relaciones
+            if (updateComboDto.serviceIds) {
                 await queryRunner.manager.delete(CombosServiceEntity, { comboId: id });
-                const newRelations = updateComboDto.servicesTypeVehicleIds.map(stvId =>
+                const newRelations = updateComboDto.serviceIds.map(serviceId =>
                     queryRunner.manager.create(CombosServiceEntity, {
                         comboId: id,
-                        servicesTypeVehicleId: stvId,
+                        serviceId: serviceId,
                     })
                 );
                 await queryRunner.manager.save(newRelations);
@@ -202,7 +182,6 @@ export class CombosService {
         }
     }
 
-    // ==================== ELIMINAR (SOFT DELETE) ====================
     async remove(id: number): Promise<Combo> {
         const combo = await this.findOne(id);
         if (!combo.active) throw new ConflictException('El combo ya está inactivo');
@@ -211,7 +190,6 @@ export class CombosService {
         return this.combosRepository.save(combo);
     }
 
-    // ==================== RESTAURAR ====================
     async restore(id: number): Promise<Combo> {
         const combo = await this.findOne(id);
         if (combo.active) throw new ConflictException('El combo ya está activo');
@@ -220,7 +198,6 @@ export class CombosService {
         return this.combosRepository.save(combo);
     }
 
-    // ==================== 🔥 DESACTIVAR COMBOS EXPIRADOS ====================
     async deactivateExpiredCombos(): Promise<void> {
         const now = new Date();
         const expiredCombos = await this.combosRepository.find({
@@ -236,7 +213,6 @@ export class CombosService {
         }
     }
 
-    // ==================== AUXILIARES ====================
     async findByName(name: string): Promise<Combo | null> {
         return this.combosRepository.findOne({ where: { name }, withDeleted: true });
     }
