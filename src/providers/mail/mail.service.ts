@@ -15,7 +15,7 @@ export class MailService {
     console.log('Desde la URL:', url);
 
     if (!url) {
-      throw new Error('La variable EMAIL_URL no está definida en el .env');
+      return 'La variable EMAIL_URL no está definida en el .env';
     }
 
     const data = {
