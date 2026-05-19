@@ -11,11 +11,15 @@ import {
   HttpCode,
   HttpException,
   InternalServerErrorException,
+  UseGuards,
 } from '@nestjs/common';
 import { VehiclesService } from './vehicles.service';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto';
 import { PaginationDto } from '../../shared/dto/pagination.dto';
+import { VerifyTokenGuard } from '../../shared/guards/verify-token.guard';
+import { RolesGuard } from '../../shared/guards/permissions.guard';
+import { CheckPermission } from '../../shared/decorators/permissions.decorators';
 import Docs from './vehicles.swagger';
 
 @Controller('vehicles')
@@ -24,6 +28,8 @@ export class VehiclesController {
 
   @Docs.ApiCreatedVehicleDoc()
   @Post()
+  @CheckPermission('C', 'VEHICLES')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @HttpCode(201)
   async create(@Body() createVehicleDto: CreateVehicleDto) {
     try {
@@ -38,6 +44,8 @@ export class VehiclesController {
 
   @Docs.ApiFindVehiclesDoc()
   @Get()
+  @CheckPermission('R', 'VEHICLES')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @HttpCode(200)
   async findAll(@Query() paginationDto: PaginationDto) {
     try {
@@ -52,6 +60,8 @@ export class VehiclesController {
 
   @Docs.ApiUpdateVehicleDoc()
   @Patch(':id')
+  @CheckPermission('U', 'VEHICLES')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @HttpCode(204)
   async update(@Param('id') id: string, @Body() updateVehicleDto: UpdateVehicleDto) {
     try {
@@ -66,6 +76,8 @@ export class VehiclesController {
 
   @Docs.ApiRestoreVehicleDoc()
   @Patch('restore/:id')
+  @CheckPermission('U', 'VEHICLES')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @HttpCode(204)
   async restore(@Param('id', ParseIntPipe) id: string) {
     try {
@@ -80,6 +92,8 @@ export class VehiclesController {
 
   @Docs.ApiRemoveVehicleDoc()
   @Delete(':id')
+  @CheckPermission('D', 'VEHICLES')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @HttpCode(204)
   async remove(@Param('id', ParseIntPipe) id: string) {
     try {

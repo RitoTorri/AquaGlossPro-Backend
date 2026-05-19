@@ -6,11 +6,13 @@ import {
   ApiCreatedResponse,
   ApiConflictResponse,
   ApiNoContentResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 
 function createProductSwagger() {
   return applyDecorators(
     ApiOperation({ summary: 'Crear un nuevo producto', description: 'Crear un nuevo producto en la base de datos' }),
+    ApiBearerAuth('access-token'),
     ApiCreatedResponse({ description: 'Producto creado exitosamente' }),
     ApiBadRequestResponse({ description: 'Datos de producto inválidos' }),
     ApiConflictResponse({ description: 'La categoría no está activa. No puede ser asignada a este producto' }),
@@ -24,6 +26,7 @@ function findAllProductsSwagger() {
       description:
         'Obtener todos los productos registrados en la base de datos. Puedes buscar productos por sus nombres o estados del stock: critico, normal o agotado, asignale ese valor a la variable param',
     }),
+    ApiBearerAuth('access-token'),
     ApiNoContentResponse({ description: 'Productos obtenidos exitosamente' }),
     ApiNotFoundResponse({ description: 'No se encontraron productos' }),
     ApiBadRequestResponse({ description: 'Datos de producto inválidos' }),
@@ -34,6 +37,7 @@ function findAllProductsSwagger() {
 function updateProductSwagger() {
   return applyDecorators(
     ApiOperation({ summary: 'Actualizar un producto', description: 'Actualizar un producto en la base de datos' }),
+    ApiBearerAuth('access-token'),
     ApiNoContentResponse({ description: 'Producto actualizado exitosamente' }),
     ApiNotFoundResponse({ description: 'No se encontró el producto' }),
     ApiBadRequestResponse({ description: 'Datos de producto inválidos' }),
@@ -43,6 +47,7 @@ function updateProductSwagger() {
 function restoreProductSwagger() {
   return applyDecorators(
     ApiOperation({ summary: 'Restaurar un producto', description: 'Restaurar un producto en la base de datos' }),
+    ApiBearerAuth('access-token'),
     ApiNoContentResponse({ description: 'Producto restaurado exitosamente' }),
     ApiNotFoundResponse({ description: 'No se encontró el producto' }),
     ApiConflictResponse({ description: 'El producto ya está activo' }),
@@ -53,6 +58,7 @@ function restoreProductSwagger() {
 function removeProductSwagger() {
   return applyDecorators(
     ApiOperation({ summary: 'Eliminar un producto', description: 'Eliminar un producto en la base de datos' }),
+    ApiBearerAuth('access-token'),
     ApiNoContentResponse({ description: 'Producto eliminado exitosamente' }),
     ApiNotFoundResponse({ description: 'No se encontró el producto' }),
     ApiConflictResponse({ description: 'El producto ya está inactivo' }),

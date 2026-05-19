@@ -7,11 +7,13 @@ import {
   ApiCreatedResponse,
   ApiOkResponse,
   ApiConflictResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 
 function createServiceSwagger() {
   return applyDecorators(
     ApiOperation({ summary: 'Crear un nuevo servicio', description: 'Crear un nuevo servicio en la base de datos' }),
+    ApiBearerAuth('access-token'),
     ApiCreatedResponse({ description: 'Servicio creado exitosamente' }),
     ApiBadRequestResponse({ description: 'Datos de servicio inválidos' }),
     ApiConflictResponse({ description: 'Ya existe un servicio con ese nombre' }),
@@ -24,6 +26,7 @@ function findAllServicesSwagger() {
       summary: 'Listar servicios',
       description: 'Permite busqueda filtrada por nombres de los servicios.',
     }),
+    ApiBearerAuth('access-token'),
     ApiOkResponse({ description: 'Servicios obtenidos exitosamente' }),
     ApiNotFoundResponse({ description: 'No se encontraron servicios' }),
     ApiBadRequestResponse({ description: 'Datos de paginación inválidos' }),
@@ -33,6 +36,7 @@ function findAllServicesSwagger() {
 function updateServiceSwagger() {
   return applyDecorators(
     ApiOperation({ summary: 'Actualizar un servicio', description: 'Actualizar un servicio en la base de datos' }),
+    ApiBearerAuth('access-token'),
     ApiNoContentResponse({ description: 'Servicio actualizado exitosamente' }),
     ApiNotFoundResponse({ description: 'No se encontró el servicio' }),
     ApiConflictResponse({ description: 'Ya existe un servicio con ese nombre' }),
@@ -43,6 +47,7 @@ function updateServiceSwagger() {
 function restoreServiceSwagger() {
   return applyDecorators(
     ApiOperation({ summary: 'Restaurar un servicio', description: 'Restaurar un servicio en la base de datos' }),
+    ApiBearerAuth('access-token'),
     ApiNoContentResponse({ description: 'Servicio restaurado exitosamente' }),
     ApiNotFoundResponse({ description: 'No se encontró el servicio' }),
     ApiConflictResponse({ description: 'El servicio ya está activo' }),
@@ -53,6 +58,7 @@ function restoreServiceSwagger() {
 function removeServiceSwagger() {
   return applyDecorators(
     ApiOperation({ summary: 'Eliminar un servicio', description: 'Eliminar un servicio en la base de datos' }),
+    ApiBearerAuth('access-token'),
     ApiNoContentResponse({ description: 'Servicio eliminado exitosamente' }),
     ApiNotFoundResponse({ description: 'No se encontró el servicio' }),
     ApiConflictResponse({ description: 'El servicio ya está inactivo' }),

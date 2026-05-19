@@ -32,13 +32,15 @@ async function modulesSeed() {
     await queryRunner.startTransaction();
 
     const tableModules = [
-      'CATEGORIES',
-      'CLIENTS',
+      'CATEGORIES', //
+      'CLIENTS', //
       'COMBOS',
       'COMISSIONS',
       'EMPLOYEES',
       'JOBS',
+      'MODULES',
       'PAYMENT_METHODS',
+      'PERMISSIONS',
       'PRODUCTS',
       'PURCHASES',
       'SALES',
@@ -49,7 +51,8 @@ async function modulesSeed() {
       'VEHICLES',
       'USERS',
       'ROLES',
-      'STOCK'
+      'STOCK',
+      'REPORTS',
     ];
     const actions = ['C', 'R', 'U', 'D'];
 

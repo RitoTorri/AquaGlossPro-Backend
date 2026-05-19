@@ -8,7 +8,6 @@ import {
   Delete,
   HttpCode,
   Query,
-  NotFoundException,
   ParseIntPipe,
   UseGuards,
   InternalServerErrorException,
@@ -30,8 +29,8 @@ export class SuppliersController {
   constructor(private readonly suppliersService: SuppliersService) {}
 
   @Docs.createSupplier()
-  //@CheckPermission('CREATE', 'SUPPLIERS')
-  //@UseGuards(VerifyTokenGuard, RolesGuard)
+  @CheckPermission('C', 'SUPPLIERS')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Post()
   @HttpCode(201)
   async create(@Body() createSupplierDto: CreateSupplierDto) {
@@ -50,8 +49,8 @@ export class SuppliersController {
   }
 
   @Docs.findAllSuppliers()
-  //@CheckPermission('READ', 'SUPPLIERS')
-  //@UseGuards(VerifyTokenGuard, RolesGuard)
+  @CheckPermission('R', 'SUPPLIERS')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Get()
   @HttpCode(200)
   async findAll(@Query() paginationDto: PaginationDto) {
@@ -70,8 +69,8 @@ export class SuppliersController {
   }
 
   @Docs.updateSupplier()
-  //@CheckPermission('UPDATE', 'SUPPLIERS')
-  //@UseGuards(VerifyTokenGuard, RolesGuard)
+  @CheckPermission('U', 'SUPPLIERS')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Patch(':id')
   @HttpCode(204)
   async update(@Param('id', ParseIntPipe) id: string, @Body() updateSupplierDto: UpdateSupplierDto) {
@@ -87,8 +86,8 @@ export class SuppliersController {
   }
 
   @Docs.restoreSupplier()
-  //@CheckPermission('UPDATE', 'SUPPLIERS')
-  //@UseGuards(VerifyTokenGuard, RolesGuard)
+  @CheckPermission('U', 'SUPPLIERS')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Patch('restore/:id')
   @HttpCode(204)
   async restore(@Param('id', ParseIntPipe) id: string) {
@@ -104,8 +103,8 @@ export class SuppliersController {
   }
 
   @Docs.deleteSupplier()
-  //@CheckPermission('DELETE', 'SUPPLIERS')
-  //@UseGuards(VerifyTokenGuard, RolesGuard)
+  @CheckPermission('D', 'SUPPLIERS')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Delete(':id')
   @HttpCode(204)
   async remove(@Param('id', ParseIntPipe) id: string) {

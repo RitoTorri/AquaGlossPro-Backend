@@ -6,17 +6,19 @@ import {
   Patch,
   Param,
   Delete,
-  ParseBoolPipe,
   ParseIntPipe,
-  NotFoundException,
   HttpCode,
   Query,
   InternalServerErrorException,
   HttpException,
+  UseGuards,
 } from '@nestjs/common';
 import { ModulesService } from './modules.service';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
+import { VerifyTokenGuard } from '../../shared/guards/verify-token.guard';
+import { RolesGuard } from '../../shared/guards/permissions.guard';
+import { CheckPermission } from '../../shared/decorators/permissions.decorators';
 import Docs from './modules.swagger';
 import { PaginationDto } from '../../shared/dto/pagination.dto';
 
@@ -26,6 +28,8 @@ export class ModulesController {
 
   @Docs.createdModule()
   @HttpCode(201)
+  @CheckPermission('C', 'MODULES')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Post()
   async create(@Body() createModuleDto: CreateModuleDto) {
     try {
@@ -40,6 +44,8 @@ export class ModulesController {
 
   @Docs.findAllModules()
   @HttpCode(200)
+  @CheckPermission('R', 'MODULES')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Get()
   async findAll(@Query() paginationDto: PaginationDto) {
     try {
@@ -54,6 +60,8 @@ export class ModulesController {
 
   @Docs.updateModule()
   @HttpCode(204)
+  @CheckPermission('U', 'MODULES')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Patch(':id')
   async update(@Param('id') id: string, @Body() updateModuleDto: UpdateModuleDto) {
     try {
@@ -68,6 +76,8 @@ export class ModulesController {
 
   @Docs.restoreModule()
   @HttpCode(204)
+  @CheckPermission('U', 'MODULES')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Patch('restore/:id')
   async restore(@Param('id', ParseIntPipe) id: string) {
     try {
@@ -82,6 +92,8 @@ export class ModulesController {
 
   @Docs.deleteModule()
   @HttpCode(204)
+  @CheckPermission('D', 'MODULES')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Delete(':id')
   async remove(@Param('id', ParseIntPipe) id: string) {
     try {

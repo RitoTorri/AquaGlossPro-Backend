@@ -1,11 +1,10 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Commission } from './entities/commission.entity';
 import { UpdateCommissionStatusDto } from './dto/update-commission-status.dto';
 import { PaginationDto } from '../../shared/dto/pagination.dto';
 import { StatusPayments } from '../../shared/enums/status-payments.enum';
-import { Not } from 'typeorm/browser';
 
 @Injectable()
 export class CommissionsService {

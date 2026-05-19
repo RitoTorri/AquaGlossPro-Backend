@@ -1,6 +1,6 @@
 import {
     Entity, PrimaryGeneratedColumn, Column, CreateDateColumn,
-    UpdateDateColumn, DeleteDateColumn, ManyToOne, OneToMany,
+    UpdateDateColumn, DeleteDateColumn, OneToMany,
     Unique
 } from 'typeorm';
 import { Product } from '../../products/entities/product.entity';

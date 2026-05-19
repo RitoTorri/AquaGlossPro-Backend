@@ -10,11 +10,15 @@ import {
   Query,
   InternalServerErrorException,
   HttpException,
+  UseGuards,
 } from '@nestjs/common';
 import { PaginationDto } from '../../shared/dto/pagination.dto';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { VerifyTokenGuard } from '../../shared/guards/verify-token.guard';
+import { RolesGuard } from '../../shared/guards/permissions.guard';
+import { CheckPermission } from '../../shared/decorators/permissions.decorators';
 import Docs from './categories.swagger';
 
 @Controller('categories')
@@ -23,6 +27,8 @@ export class CategoriesController {
 
   @Docs.createCategory()
   @Post()
+  @CheckPermission('C', 'CATEGORIES')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @HttpCode(201)
   async create(@Body() createCategoryDto: CreateCategoryDto) {
     try {
@@ -40,6 +46,8 @@ export class CategoriesController {
 
   @Docs.findAllCategories()
   @Get()
+  @CheckPermission('R', 'CATEGORIES')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @HttpCode(200)
   async findAll(@Query() paginationDto: PaginationDto) {
     try {
@@ -54,6 +62,8 @@ export class CategoriesController {
 
   @Docs.updateCategory()
   @Patch(':id')
+  @CheckPermission('U', 'CATEGORIES')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @HttpCode(204)
   async update(@Param('id') id: string, @Body() updateCategoryDto: UpdateCategoryDto) {
     try {
@@ -68,6 +78,8 @@ export class CategoriesController {
 
   @Docs.restoreCategory()
   @Patch('restore/:id')
+  @CheckPermission('U', 'CATEGORIES')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @HttpCode(204)
   async restore(@Param('id') id: string) {
     try {
@@ -82,6 +94,8 @@ export class CategoriesController {
 
   @Docs.deleteCategory()
   @Delete(':id')
+  @CheckPermission('D', 'CATEGORIES')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @HttpCode(204)
   async remove(@Param('id') id: string) {
     try {

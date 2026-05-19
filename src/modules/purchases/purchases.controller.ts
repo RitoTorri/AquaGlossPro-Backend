@@ -27,8 +27,8 @@ export class PurchasesController {
   constructor(private readonly purchasesService: PurchasesService) {}
 
   @Docs.createPurchase()
-  //@CheckPermission('CREATE', 'PURCHASES')
-  //@UseGuards(VerifyTokenGuard, RolesGuard)
+  @CheckPermission('C', 'PURCHASES')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Post()
   @HttpCode(201)
   async create(@Body() createPurchaseDto: CreatePurchaseDto) {
@@ -40,8 +40,8 @@ export class PurchasesController {
   }
 
   @Docs.findAllPurchases()
-  //@CheckPermission('READ', 'PURCHASES')
-  //@UseGuards(VerifyTokenGuard, RolesGuard)
+  @CheckPermission('R', 'PURCHASES')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Get()
   @HttpCode(200)
   async findAll(@Query() queryDateDto: QueryDateDto) {
@@ -55,8 +55,8 @@ export class PurchasesController {
   }
 
   @Docs.updatePurchase()
-  //@CheckPermission('UPDATE', 'PURCHASES')
-  //@UseGuards(VerifyTokenGuard, RolesGuard)
+  @CheckPermission('U', 'PURCHASES')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Patch(':id')
   @HttpCode(204)
   async update(@Param('id', ParseIntPipe) id: string, @Body() updatePurchaseDto: UpdatePurchaseDto) {

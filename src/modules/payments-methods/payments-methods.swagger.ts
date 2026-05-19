@@ -8,6 +8,7 @@ import {
   ApiCreatedResponse,
   ApiUnauthorizedResponse,
   ApiBadRequestResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 
 function createPaymentMethod() {
@@ -16,6 +17,7 @@ function createPaymentMethod() {
       summary: 'Crear un nuevo método de pago',
       description: 'Permite crear un nuevo método de pago',
     }),
+    ApiBearerAuth('access-token'),
     ApiCreatedResponse({ description: 'Método de pago creado exitosamente' }),
     ApiConflictResponse({ description: 'El método de pago ya existe' }),
     ApiBadRequestResponse({ description: 'Datos invalidos o campos requeridos faltantes' }),
@@ -28,6 +30,7 @@ function findPaymentsMethods() {
       summary: 'Obtener todos los métodos de pago',
       description: 'Permite obtener todos los métodos de pago',
     }),
+    ApiBearerAuth('access-token'),
     ApiOkResponse({ description: 'Métodos de pago obtenidos exitosamente' }),
     ApiNotFoundResponse({ description: 'No se encontraron métodos de pago' }),
     ApiBadRequestResponse({ description: 'Datos invalidos o campos requeridos faltantes' }),
@@ -40,6 +43,7 @@ function updatePaymentMethod() {
       summary: 'Actualizar un método de pago',
       description: 'Permite actualizar un método de pago',
     }),
+    ApiBearerAuth('access-token'),
     ApiNoContentResponse({ description: 'Método de pago actualizado exitosamente' }),
     ApiNotFoundResponse({ description: 'No se encontró el método de pago con el id proporcionado' }),
     ApiConflictResponse({ description: 'El método de pago ya existe' }),
@@ -53,6 +57,7 @@ function removePaymentMethod() {
       summary: 'Eliminar un método de pago',
       description: 'Permite eliminar un método de pago',
     }),
+    ApiBearerAuth('access-token'),
     ApiNoContentResponse({ description: 'Método de pago eliminado exitosamente' }),
     ApiNotFoundResponse({ description: 'No se encontró el método de pago con el id proporcionado' }),
     ApiConflictResponse({ description: 'El método de pago ya esta inactivo. No puede ser eliminado nuevamente.' }),
@@ -66,6 +71,7 @@ function restorePaymentMethod() {
       summary: 'Restaurar un método de pago',
       description: 'Permite restaurar un método de pago',
     }),
+    ApiBearerAuth('access-token'),
     ApiOkResponse({ description: 'Método de pago restaurado exitosamente' }),
     ApiNotFoundResponse({ description: 'No se encontró el método de pago con el id proporcionado' }),
     ApiConflictResponse({ description: 'El método de pago ya esta activo. No puede ser restaurado nuevamente.' }),

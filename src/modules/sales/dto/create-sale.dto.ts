@@ -40,7 +40,7 @@ export class CreateSaleDto {
     example: [
       {
         employeeId: 'Id del empleado que realiza el servicio',
-        serviceTypeVehicleId: 'Id del servicio del combo',
+        serviceId: 'Id del servicio del combo',
         comboOriginId: 'Id del combo (Opcional)',
         discount: 'Descuento del combo (Opcional)',
         notes: 'Notas del servicio que hizo el empleado (Opcional)',

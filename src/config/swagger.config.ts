@@ -11,4 +11,15 @@ export const configSwagger = new DocumentBuilder()
       'https://cortez-porfolio.netlify.app/', 
       'cortezfrancisco025@gmail.com'
     )
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Ingresa tu token JWT',
+        in: 'header',
+      },
+      'access-token',
+    )
     .build();

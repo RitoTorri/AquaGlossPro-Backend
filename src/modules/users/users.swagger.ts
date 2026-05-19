@@ -7,6 +7,7 @@ import {
   ApiCreatedResponse,
   ApiNoContentResponse,
   ApiBadRequestResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 
 function createUser() {
@@ -15,6 +16,7 @@ function createUser() {
       summary: 'Crear un nuevo usuario',
       description: 'Crea un nuevo usuario en el sistema',
     }),
+    ApiBearerAuth('access-token'),
     ApiCreatedResponse({ description: 'Usuario creado exitosamente' }),
     ApiConflictResponse({ description: 'Email ya esta en uso o el rol esta inactivo o no existe' }),
     ApiNotFoundResponse({ description: 'Rol no encontrado' }),
@@ -28,6 +30,7 @@ function findAllUsers() {
       summary: 'Lista de usuarios',
       description: 'Obtiene la lista de usuarios',
     }),
+    ApiBearerAuth('access-token'),
     ApiOkResponse({ description: 'Usuarios obtenidos exitosamente' }),
     ApiNotFoundResponse({ description: 'No se encontraron usuarios registrados' }),
     ApiBadRequestResponse({ description: 'Formato de datos incorrecto' }),
@@ -40,6 +43,7 @@ function updateUser() {
       summary: 'Actualiza un usuario',
       description: 'Actualiza un usuario en el sistema',
     }),
+    ApiBearerAuth('access-token'),
     ApiNoContentResponse({ description: 'Usuario actualizado exitosamente' }),
     ApiNotFoundResponse({ description: 'No se encontró el usuario o el rol con el id proporcionado' }),
     ApiConflictResponse({ description: 'Email ya esta en uso o el rol esta inactivo o no existe' }),
@@ -53,6 +57,7 @@ function deleteUser() {
       summary: 'Elimina un usuario',
       description: 'Elimina un usuario en el sistema',
     }),
+    ApiBearerAuth('access-token'),
     ApiNoContentResponse({ description: 'Usuario eliminado exitosamente' }),
     ApiNotFoundResponse({ description: 'No se encontró el usuario con el id proporcionado' }),
     ApiConflictResponse({ description: 'El usuario ya esta inactivo. No puede ser eliminado nuevamente.' }),
@@ -66,6 +71,7 @@ function restoreUser() {
       summary: 'Restaura un usuario',
       description: 'Restaura un usuario en el sistema',
     }),
+    ApiBearerAuth('access-token'),
     ApiNoContentResponse({ description: 'Usuario restaurado exitosamente' }),
     ApiNotFoundResponse({ description: 'No se encontró el usuario con el id proporcionado' }),
     ApiConflictResponse({ description: 'El usuario ya esta activo. No puede ser restaurado nuevamente.' }),

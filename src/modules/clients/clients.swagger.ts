@@ -7,6 +7,7 @@ import {
   ApiConflictResponse,
   ApiOkResponse,
   ApiBadRequestResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 
 function createClient() {
@@ -15,6 +16,7 @@ function createClient() {
       summary: 'Crear un nuevo cliente',
       description: 'Crea un nuevo cliente en el sistema',
     }),
+    ApiBearerAuth('access-token'),
     ApiCreatedResponse({ description: 'Cliente creado exitosamente' }),
     ApiConflictResponse({ description: 'La cedula o rif proporcionado ya existe' }),
     ApiBadRequestResponse({ description: 'Datos inválidos o formato incorrecto' }),
@@ -27,6 +29,7 @@ function findAllClients() {
       summary: 'Lista de clientes',
       description: 'Permite busqueda filtrada por nombres, apellidos, cedula y cedula - Rif',
     }),
+    ApiBearerAuth('access-token'),
     ApiOkResponse({ description: 'Clientes obtenidos exitosamente' }),
     ApiNotFoundResponse({ description: 'No se encontraron clientes' }),
     ApiBadRequestResponse({ description: 'Datos inválidos o formato incorrecto' }),
@@ -39,6 +42,7 @@ function updateClient() {
       summary: 'Actualiza un cliente',
       description: 'Actualiza un cliente en el sistema',
     }),
+    ApiBearerAuth('access-token'),
     ApiNoContentResponse({ description: 'Cliente actualizado exitosamente' }),
     ApiNotFoundResponse({ description: 'No se encontró el cliente con el id proporcionado' }),
     ApiConflictResponse({ description: 'La cedula o rif proporcionado ya existe' }),
@@ -52,6 +56,7 @@ function deleteClient() {
       summary: 'Elimina un cliente',
       description: 'Elimina un cliente en el sistema',
     }),
+    ApiBearerAuth('access-token'),
     ApiNoContentResponse({ description: 'Cliente eliminado exitosamente' }),
     ApiNotFoundResponse({ description: 'No se encontró el cliente con el id proporcionado' }),
     ApiConflictResponse({ description: 'El cliente está inactivo. No puede ser eliminado' }),
@@ -65,6 +70,7 @@ function restoreClient() {
       summary: 'Restaura un cliente',
       description: 'Restaura un cliente en el sistema',
     }),
+    ApiBearerAuth('access-token'),
     ApiNoContentResponse({ description: 'Cliente restaurado exitosamente' }),
     ApiNotFoundResponse({ description: 'No se encontró el cliente con el id proporcionado' }),
     ApiConflictResponse({ description: 'El cliente está activo. No puede ser restaurado' }),

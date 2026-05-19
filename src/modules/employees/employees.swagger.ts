@@ -7,6 +7,7 @@ import {
   ApiNoContentResponse,
   ApiCreatedResponse,
   ApiBadRequestResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 
 function ApiFindEmployeesDoc() {
@@ -15,6 +16,7 @@ function ApiFindEmployeesDoc() {
       summary: 'Obtener todos los empleados',
       description: 'Filtra empleados por estado activo, nombre, apellido o cédula.',
     }),
+    ApiBearerAuth('access-token'),
     ApiOkResponse({ description: 'Empleados obtenidos exitosamente' }),
     ApiNotFoundResponse({ description: 'No hay empleados para mostrar' }),
     ApiBadRequestResponse({ description: 'Datos inválidos o formato incorrecto' }),
@@ -27,6 +29,7 @@ function ApiCreateEmployeeDoc() {
       summary: 'Crear un nuevo empleado',
       description: 'Crea un nuevo empleado con los datos proporcionados.',
     }),
+    ApiBearerAuth('access-token'),
     ApiCreatedResponse({ description: 'Empleado creado exitosamente' }),
     ApiNotFoundResponse({ description: 'No se encontro un puesto de trabajo con ese ID' }),
     ApiConflictResponse({ description: 'El email, telefono o cédula ya esta en uso' }),
@@ -40,6 +43,7 @@ function ApiUpdateEmployeeDoc() {
       summary: 'Actualizar un empleado',
       description: 'Actualiza un empleado con los datos proporcionados.',
     }),
+    ApiBearerAuth('access-token'),
     ApiNoContentResponse({ description: 'Empleado actualizado exitosamente' }),
     ApiNotFoundResponse({ description: 'No se encontro un empleado o job con ese ID' }),
     ApiConflictResponse({ description: 'El email, telefono o cédula ya esta en uso' }),
@@ -53,6 +57,7 @@ function ApiRemoveEmployeeDoc() {
       summary: 'Eliminar un empleado',
       description: 'Elimina un empleado con el ID proporcionado.',
     }),
+    ApiBearerAuth('access-token'),
     ApiNoContentResponse({ description: 'Empleado eliminado exitosamente' }),
     ApiNotFoundResponse({ description: 'No se encontro un empleado con ese ID' }),
     ApiConflictResponse({ description: 'El empleado está inactivo' }),
@@ -66,6 +71,7 @@ function ApiRestoreEmployeeDoc() {
       summary: 'Restaurar un empleado',
       description: 'Restaura un empleado con el ID proporcionado.',
     }),
+    ApiBearerAuth('access-token'),
     ApiNoContentResponse({ description: 'Empleado restaurado exitosamente' }),
     ApiNotFoundResponse({ description: 'No se encontro un empleado con ese ID' }),
     ApiConflictResponse({ description: 'El empleado está activo' }),

@@ -11,13 +11,15 @@ import {
   HttpCode,
   HttpException,
   InternalServerErrorException,
-  // UseGuards,
+  UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PaginationDto } from '../../shared/dto/pagination.dto';
-// import { VerifyTokenGuard } from '../../shared/guards/verify-token.guard';
+import { VerifyTokenGuard } from '../../shared/guards/verify-token.guard';
+import { RolesGuard } from '../../shared/guards/permissions.guard';
+import { CheckPermission } from '../../shared/decorators/permissions.decorators';
 import Docs from './users.swagger';
 
 @Controller('users')
@@ -25,7 +27,8 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Docs.createUser()
-  //@UseGuards(VerifyTokenGuard)
+  @CheckPermission('C', 'USERS')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Post()
   @HttpCode(201)
   async create(@Body() createUserDto: CreateUserDto) {
@@ -40,7 +43,8 @@ export class UsersController {
   }
 
   @Docs.findAllUsers()
-  //@UseGuards(VerifyTokenGuard)
+  @CheckPermission('R', 'USERS')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Get()
   @HttpCode(200)
   async findAll(@Query() paginationDto: PaginationDto) {
@@ -55,7 +59,8 @@ export class UsersController {
   }
 
   @Docs.updateUser()
-  //@UseGuards(VerifyTokenGuard)
+  @CheckPermission('U', 'USERS')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Patch(':id')
   @HttpCode(204)
   async update(@Param('id', ParseIntPipe) id: string, @Body() updateUserDto: UpdateUserDto) {
@@ -70,7 +75,8 @@ export class UsersController {
   }
 
   @Docs.restoreUser()
-  //@UseGuards(VerifyTokenGuard)
+  @CheckPermission('U', 'USERS')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Patch('restore/:id')
   @HttpCode(204)
   async restore(@Param('id', ParseIntPipe) id: string) {
@@ -85,7 +91,8 @@ export class UsersController {
   }
 
   @Docs.deleteUser()
-  //@UseGuards(VerifyTokenGuard)
+  @CheckPermission('D', 'USERS')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Delete(':id')
   @HttpCode(204)
   async remove(@Param('id', ParseIntPipe) id: string) {

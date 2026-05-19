@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, DataSource, Repository, ILike, SelectQueryBuilder } from 'typeorm';
+import { Between, DataSource, Repository, SelectQueryBuilder } from 'typeorm';
 import { CreateSaleDto } from './dto/create-sale.dto';
 import { UpdateSaleStatusWashingDto } from './dto/update-sale-status-washing.dto';
 import { UpdateSaleStatusPaymentDto } from './dto/update-sale-status-payment.dto';
@@ -9,6 +9,23 @@ import { Sale } from './entities/sale.entity';
 import { QueryDateDto } from '../../shared/dto/query.date.dto';
 import { StatusWashing } from '../../shared/enums/status.washing';
 import { generateInvoiceNumber } from '../../shared/utils/invoice_generate.utils';
+
+interface ServiceMapping {
+  serviceTypeVehicleId: number;
+  serviceId: number;
+  price: number;
+  serviceName: string;
+  comissionPercentage: number;
+}
+
+interface ConvertedService {
+  employeeId: number;
+  serviceId: number;
+  serviceTypeVehicleId: number;
+  comboOriginId?: number;
+  discount?: number;
+  notes?: string | null;
+}
 
 @Injectable()
 export class SalesService {
@@ -19,41 +36,39 @@ export class SalesService {
   ) {}
 
   async create(createSaleDto: CreateSaleDto) {
-    let { services, ...rest } = createSaleDto;
-    console.log(rest);
+    const { services, ...rest } = createSaleDto;
+    console.log('Datos recibidos:', { services, ...rest });
 
     const queryRunner = this.dataSource.createQueryRunner();
-
     await queryRunner.connect();
-    await queryRunner.startTransaction(); // Inicio manual
+    await queryRunner.startTransaction();
 
     try {
       /**
-       * CREAMOS LA VENTA
+       * VALIDACIONES INICIALES
        */
 
-      // Verificamos que exista el clientId, vehicleID y paymentMethodID
+      // 1. Verificar existencia de cliente, vehículo y método de pago
       const isExistsData = await queryRunner.manager.query(
         `
         SELECT 
-          (SELECT EXISTS(SELECT 1 FROM clients WHERE "clientId" = $1 AND "active" = TRUE)) AS "employeeId",
-          (SELECT EXISTS(SELECT 1 FROM vehicles WHERE "vehicleId" = $2 AND "active" = TRUE AND "ownerId" = $1)) AS "vehicleId",
-          (SELECT EXISTS(SELECT 1 FROM payments_methods WHERE "paymentMethodId" = $3 AND "active" = TRUE)) AS "paymentMethodId";
-      `,
+          (SELECT EXISTS(SELECT 1 FROM clients WHERE "clientId" = $1 AND "active" = TRUE)) AS "clientExists",
+          (SELECT EXISTS(SELECT 1 FROM vehicles WHERE "vehicleId" = $2 AND "active" = TRUE AND "ownerId" = $1)) AS "vehicleExists",
+          (SELECT EXISTS(SELECT 1 FROM payments_methods WHERE "paymentMethodId" = $3 AND "active" = TRUE)) AS "paymentMethodExists";
+        `,
         [rest.clientId, rest.vehicleId, rest.paymentMethodId],
       );
 
-      console.log('Resultado de la validacion de existencia de cliente, vehiculo y metodo de pago');
-      console.log(isExistsData[0]);
+      console.log('Validación de existencia:', isExistsData[0]);
 
-      const { employeeId, vehicleId, paymentMethodId } = isExistsData[0];
-      if (!employeeId || !vehicleId || !paymentMethodId) {
+      const { clientExists, vehicleExists, paymentMethodExists } = isExistsData[0];
+      if (!clientExists || !vehicleExists || !paymentMethodExists) {
         throw new NotFoundException(
-          'El cliente, vehículo o método de pago no existe. Verifique tambien que el cliente sea dueño del vehículo.',
+          'El cliente, vehículo o método de pago no existe. Verifique también que el cliente sea dueño del vehículo.',
         );
       }
 
-      // Verificamos que el vehiculo no este en otra venta
+      // 2. Verificar que el vehículo no esté en otra venta activa
       const isVehicleInSale = await queryRunner.manager.query(
         `
         SELECT NOT EXISTS (
@@ -62,20 +77,16 @@ export class SalesService {
           WHERE "vehicleId" = $1
             AND "statusWashing" IN ('W', 'I')
         ) AS disponible;  
-      `,
+        `,
         [rest.vehicleId],
       );
-      console.log('Resultado de la verificación de que el vehiculo no este en otra venta');
-      console.log(isVehicleInSale[0]);
+      console.log('Vehículo disponible:', isVehicleInSale[0]);
 
       if (!isVehicleInSale[0].disponible) {
-        throw new ConflictException('El vehículo id:' + rest.vehicleId + ' esta en proceso de limpieza en otra venta.');
+        throw new ConflictException(`El vehículo id:${rest.vehicleId} está en proceso de limpieza en otra venta.`);
       }
 
-      // Verficamos que el tipo de vehiculo del vehiculo enviado sea el
-      // mismo que el tipo de vehiculo del servicio que se va a pagar
-
-      // Extraer el typeVehicleId del vehiculo enviado
+      // 3. Obtener el tipo de vehículo
       const vehicleType = await queryRunner.manager.query(
         `SELECT "typeVehicleId" FROM vehicles WHERE "vehicleId" = $1 AND "active" = TRUE`,
         [rest.vehicleId],
@@ -86,54 +97,103 @@ export class SalesService {
       }
 
       const typeVehicleId = vehicleType[0].typeVehicleId;
+      console.log('Tipo de vehículo:', typeVehicleId);
 
-      // Extraer los serviceTypeVehicleId únicos del array services
-      const serviceTypeVehicleIds = [...new Set(services?.map((s) => s.serviceTypeVehicleId))];
+      /**
+       * CONVERSIÓN DE serviceId A serviceTypeVehicleId
+       * Esta es la parte clave que necesitabas
+       */
+      let convertedServices: ConvertedService[] = [];
 
-      if (serviceTypeVehicleIds.length > 0) {
-        // Verificar que TODOS esos servicios correspondan al typeVehicleId del vehículo
-        const validServices = await queryRunner.manager.query(
-          `SELECT COUNT(*)::int = $1 AS "allValid"
-     FROM services_type_vehicle
-     WHERE "serviceTypeVehicleId" = ANY($2)
-       AND "typeVehicleId" = $3`,
-          [serviceTypeVehicleIds.length, serviceTypeVehicleIds, typeVehicleId],
+      if (services && services.length > 0) {
+        // Extraer los serviceId únicos
+        const serviceIds = [...new Set(services.map((s) => s.serviceId))];
+        console.log('Service IDs recibidos:', serviceIds);
+
+        // Buscar los serviceTypeVehicleId correspondientes al tipo de vehículo
+        const serviceTypeVehicleMapping: ServiceMapping[] = await queryRunner.manager.query(
+          `
+          SELECT 
+            stv."serviceTypeVehicleId",
+            stv."serviceId",
+            stv."price",
+            s."name" as "serviceName",
+            s."comissionPercentage"
+          FROM services_type_vehicle stv
+          INNER JOIN services s ON stv."serviceId" = s."serviceId"
+          WHERE stv."serviceId" = ANY($1)
+            AND stv."typeVehicleId" = $2
+            AND stv."active" = TRUE
+            AND s."active" = TRUE
+          `,
+          [serviceIds, typeVehicleId],
         );
 
-        if (!validServices[0]?.allValid) {
-          throw new BadRequestException('Uno o más servicios no corresponden al tipo de vehículo de esta venta.');
+        console.log('Mapeo serviceId -> serviceTypeVehicleId:', serviceTypeVehicleMapping);
+
+        // Verificar que todos los servicios existen para este tipo de vehículo
+        if (serviceTypeVehicleMapping.length !== serviceIds.length) {
+          const foundServiceIds = serviceTypeVehicleMapping.map((s) => s.serviceId);
+          const missingServiceIds = serviceIds.filter((id) => !foundServiceIds.includes(id));
+          throw new BadRequestException(
+            `Los siguientes servicios no están disponibles para este tipo de vehículo: ${missingServiceIds.join(', ')}`,
+          );
         }
+
+        // Crear mapa de conversión tipado correctamente
+        const serviceMap = new Map<number, ServiceMapping>(serviceTypeVehicleMapping.map((s) => [s.serviceId, s]));
+
+        // Convertir los servicios con tipado correcto
+        convertedServices = services.map((service) => {
+          const mapping = serviceMap.get(service.serviceId);
+          if (!mapping) {
+            throw new BadRequestException(
+              `No se encontró el servicio ID ${service.serviceId} para el tipo de vehículo ${typeVehicleId}`,
+            );
+          }
+          return {
+            employeeId: service.employeeId,
+            serviceId: service.serviceId,
+            serviceTypeVehicleId: mapping.serviceTypeVehicleId,
+            comboOriginId: service.comboOriginId,
+            discount: service.discount,
+            notes: service.notes,
+          };
+        });
+
+        console.log('Servicios convertidos:', convertedServices);
       }
 
-      // Verificamos que el empleado no este en otra venta
-      if (services) {
-        for (const service of services) {
+      /**
+       * VALIDACIONES DE EMPLEADOS
+       */
+      if (convertedServices.length > 0) {
+        for (const service of convertedServices) {
           const isEmployeeInSale = await queryRunner.manager.query(
             `
             SELECT 
-                e."employeeId",
-                e."names",
-                e."lastnames",
-                NOT EXISTS (
-                    SELECT 1
-                    FROM services_assignments sa
-                    INNER JOIN sales_items si ON sa."saleItemId" = si."saleItemId"
-                    INNER JOIN sales s ON si."saleId" = s."saleId"
-                    WHERE sa."employeeId" = e."employeeId"
-                      AND s."statusWashing" IN ('W', 'I')
-                ) AS disponible
+              e."employeeId",
+              e."names",
+              e."lastnames",
+              NOT EXISTS (
+                SELECT 1
+                FROM services_assignments sa
+                INNER JOIN sales_items si ON sa."saleItemId" = si."saleItemId"
+                INNER JOIN sales s ON si."saleId" = s."saleId"
+                WHERE sa."employeeId" = e."employeeId"
+                  AND s."statusWashing" IN ('W', 'I')
+              ) AS disponible
             FROM employees e
             WHERE e."employeeId" = $1
               AND e."active" = TRUE
-              AND e."deletedAt" IS NULL; `,
+              AND e."deletedAt" IS NULL;
+            `,
             [service.employeeId],
           );
 
-          console.log('Verificando disponibilidad de empleado:', isEmployeeInSale[0]);
+          console.log('Disponibilidad de empleado:', isEmployeeInSale[0]);
 
           if (!isEmployeeInSale[0] || !isEmployeeInSale[0].disponible) {
-            // Ahora sí, este throw detendrá la función, irá al catch,
-            // hará el rollback y enviará la respuesta 409 a Swagger.
             throw new ConflictException(
               `El empleado id: ${isEmployeeInSale[0]?.employeeId} ${isEmployeeInSale[0]?.names || ''} está asignado en otra venta activa.`,
             );
@@ -141,10 +201,17 @@ export class SalesService {
         }
       }
 
-      // Creamos la venta
-      const dataSale = { ...rest, invoiceNumber: generateInvoiceNumber() };
-      console.log('Datos de la venta a guardar:');
-      console.log(dataSale);
+      /**
+       * CREACIÓN DE LA VENTA
+       */
+      const dataSale = {
+        ...rest,
+        invoiceNumber: generateInvoiceNumber(),
+        initialState: rest.initialState || null,
+      };
+
+      console.log('Datos de venta a guardar:', dataSale);
+
       const sale = (
         await queryRunner.manager
           .createQueryBuilder()
@@ -164,43 +231,34 @@ export class SalesService {
           .execute()
       ).generatedMaps[0];
 
-      console.log('Resultado de la creacion de la venta: ');
-      console.log(sale);
+      console.log('Venta creada:', sale);
 
       /**
-       * CREAMOS LA DETALLES DE LA VENTA
+       * VALIDACIÓN DE COMBOS Y CÁLCULO DE PRECIOS
        */
 
-      // Extraemos los empleados de la venta
-      const employeesSetIds = Array.from(new Set(services?.map((service) => service.employeeId)));
-      console.log('Empleados que participan en la venta: ');
-      console.log(employeesSetIds);
-
-      // Expraemos los servicios id de la venta
-      const servicesTypeVehicleIds = Array.from(new Set(services?.map((service) => service.serviceTypeVehicleId)));
-      console.log('Servicios que participan en la venta: ');
-      console.log(servicesTypeVehicleIds);
-
-      // Extraemos los combos id de la venta, deduplicados
-      const combosSetIds: number[] = [
-        ...new Set(services?.map((s) => s.comboOriginId).filter((id): id is number => id != null)),
+      // Extraer IDs únicos
+      const serviceTypeVehicleIds = [...new Set(convertedServices?.map((s) => s.serviceTypeVehicleId))];
+      const employeesSetIds = [...new Set(convertedServices?.map((s) => s.employeeId))];
+      const combosSetIds = [
+        ...new Set(convertedServices?.map((s) => s.comboOriginId).filter((id): id is number => id != null)),
       ];
 
-      console.log('Combos que participan en la venta (únicos): ', combosSetIds);
+      console.log('ServiceTypeVehicleIds:', serviceTypeVehicleIds);
+      console.log('Employees:', employeesSetIds);
+      console.log('Combos:', combosSetIds);
 
-      // ==================== VALIDACIÓN DE COMBOS ====================
+      // Validación de combos
       if (combosSetIds.length > 0) {
-        // 1. Información de combos (existencia, activo, expiración)
-        const comboInfoQuery = `
-          SELECT "comboId", "active", "expirationDate"
+        // Validar existencia, actividad y expiración de combos
+        const combosInfo = await queryRunner.manager.query(
+          `
+          SELECT "comboId", "active", "expirationDate", "name"
           FROM combos
           WHERE "comboId" = ANY($1)
-        `;
-        const combosInfo: Array<{
-          comboId: number;
-          active: boolean;
-          expirationDate: string | null;
-        }> = await queryRunner.manager.query(comboInfoQuery, [combosSetIds]);
+          `,
+          [combosSetIds],
+        );
 
         if (combosInfo.length !== combosSetIds.length) {
           throw new NotFoundException('Uno o más combos no existen.');
@@ -208,23 +266,25 @@ export class SalesService {
 
         for (const combo of combosInfo) {
           if (!combo.active) {
-            throw new BadRequestException(`El combo con ID ${combo.comboId} no está activo.`);
+            throw new BadRequestException(`El combo "${combo.name}" (ID: ${combo.comboId}) no está activo.`);
           }
           if (combo.expirationDate && new Date(combo.expirationDate) < new Date()) {
-            throw new BadRequestException(`El combo con ID ${combo.comboId} ha expirado.`);
+            throw new BadRequestException(`El combo "${combo.name}" (ID: ${combo.comboId}) ha expirado.`);
           }
         }
 
-        // 2. Obtener todos los servicesTypeVehicleId que pertenecen a cada combo (activos)
-        const comboServicesQuery = `
-          SELECT cs."comboId", cs."servicesTypeVehicleId"
+        // Validar que los servicios enviados coincidan exactamente con los del combo
+        const comboServices = await queryRunner.manager.query(
+          `
+          SELECT cs."comboId", cs."serviceId", stv."serviceTypeVehicleId"
           FROM combos_services cs
-          WHERE cs."comboId" = ANY($1) AND cs."active" = TRUE
-        `;
-        const comboServices: Array<{
-          comboId: number;
-          servicesTypeVehicleId: number;
-        }> = await queryRunner.manager.query(comboServicesQuery, [combosSetIds]);
+          INNER JOIN services_type_vehicle stv ON cs."serviceId" = stv."serviceId"
+          WHERE cs."comboId" = ANY($1) 
+            AND cs."active" = TRUE
+            AND stv."typeVehicleId" = $2
+          `,
+          [combosSetIds, typeVehicleId],
+        );
 
         // Agrupar servicios esperados por combo
         const expectedServicesMap = new Map<number, Set<number>>();
@@ -232,12 +292,12 @@ export class SalesService {
           if (!expectedServicesMap.has(row.comboId)) {
             expectedServicesMap.set(row.comboId, new Set<number>());
           }
-          expectedServicesMap.get(row.comboId)!.add(row.servicesTypeVehicleId);
+          expectedServicesMap.get(row.comboId)!.add(row.serviceTypeVehicleId);
         }
 
-        // 3. Agrupar los servicios enviados que pertenecen a un combo
+        // Agrupar servicios proporcionados por combo
         const providedServicesMap = new Map<number, Set<number>>();
-        for (const s of services ?? []) {
+        for (const s of convertedServices) {
           const comboId = s.comboOriginId;
           if (comboId != null) {
             if (!providedServicesMap.has(comboId)) {
@@ -247,7 +307,7 @@ export class SalesService {
           }
         }
 
-        // 4. Comparar que los servicios enviados sean exactamente los del combo
+        // Comparar servicios
         for (const comboId of combosSetIds) {
           const expected = expectedServicesMap.get(comboId) ?? new Set<number>();
           const provided = providedServicesMap.get(comboId) ?? new Set<number>();
@@ -257,95 +317,87 @@ export class SalesService {
 
           if (JSON.stringify(expectedArr) !== JSON.stringify(providedArr)) {
             throw new BadRequestException(
-              `El combo "${comboId}" requiere exactamente los servicios: [${expectedArr.join(', ')}]. ` +
+              `El combo ID ${comboId} requiere exactamente los servicios: [${expectedArr.join(', ')}]. ` +
                 `Recibidos: [${providedArr.join(', ')}].`,
             );
           }
         }
       }
 
-      // ============ AQUÍ CONTINÚA EL RESTO DEL CÓDIGO ============
-
+      // Verificar existencia de empleados y servicios
       const parameters: any[] = [
         employeesSetIds.length,
-        servicesTypeVehicleIds.length,
+        serviceTypeVehicleIds.length,
         employeesSetIds,
-        servicesTypeVehicleIds,
+        serviceTypeVehicleIds,
       ];
-      console.log('Parametros iniciales: ');
-      console.log(parameters);
 
-      let query = `
-       SELECT 
-        (SELECT COUNT(*) = $1 FROM employees WHERE "employeeId" = ANY($3)) AS employees,
-        (SELECT COUNT(*) = $2 FROM services_type_vehicle WHERE "serviceTypeVehicleId" = ANY($4)) AS services
+      let existQuery = `
+        SELECT 
+          (SELECT COUNT(*) = $1 FROM employees WHERE "employeeId" = ANY($3) AND "active" = TRUE) AS "employeesExist",
+          (SELECT COUNT(*) = $2 FROM services_type_vehicle WHERE "serviceTypeVehicleId" = ANY($4) AND "active" = TRUE) AS "servicesExist"
       `;
 
       if (combosSetIds.length > 0) {
-        query += `
-          , (SELECT COUNT(*) = $5 FROM combos WHERE "comboId" = ANY($6)) AS combos;
-        `;
-        parameters.push(combosSetIds.length);
-        parameters.push(combosSetIds);
-      } else {
-        query += `;`;
+        existQuery += `, (SELECT COUNT(*) = $5 FROM combos WHERE "comboId" = ANY($6)) AS "combosExist"`;
+        parameters.push(combosSetIds.length, combosSetIds);
       }
 
-      console.log('Query para verificar la existencia de empleados, combos y servicios: ');
-      console.log(query);
+      const isExistDataSale = (await queryRunner.manager.query(existQuery, parameters))[0];
 
-      console.log('Parametros finales: ');
-      console.log(parameters);
+      console.log('Validación de existencia:', isExistDataSale);
 
-      // Verififcamos que existan los empleados, combos y servicios
-      const isExistDataSale = (await queryRunner.manager.query(query, parameters))[0];
-
-      console.log('Resultado de la verificación de existencia de empleados, combos y servicios: ');
-      console.log(isExistDataSale);
-
-      if (!isExistDataSale.employees || !isExistDataSale.services || isExistDataSale.combos === false) {
+      if (
+        !isExistDataSale.employeesExist ||
+        !isExistDataSale.servicesExist ||
+        (combosSetIds.length > 0 && !isExistDataSale.combosExist)
+      ) {
         throw new NotFoundException('No se encontraron empleados, servicios o combos registrados');
       }
 
-      // Extraemos los precios de los servicios y establecer el precio de la venta por item
+      /**
+       * CÁLCULO DE PRECIOS DE LOS ITEMS
+       */
       const items = await Promise.all(
-        (services ?? []).map(async (service) => {
-          let query: string = '';
-          let salePrice: number = 0;
-          let param: any[] = [];
+        convertedServices.map(async (service) => {
+          let query: string;
+          let params: any[];
+          let salePrice: number;
 
           if (service.comboOriginId) {
-            /**
-             * Se divide el combo por servicios unitarios y su descuento se aplica a cada servicio unitario
-             */
-            query += `
-                WITH CalculatedPrices AS (
-                  SELECT 
-                      s."serviceTypeVehicleId",
-                      c."comboId",
-                      c."discountPercentage",
-                      ROUND(s.price * (1 - (c."discountPercentage" / 100.0)), 2) AS "priceUnitByCombo"
-                  FROM services_type_vehicle s
-                  INNER JOIN combos_services cs ON cs."servicesTypeVehicleId" = s."serviceTypeVehicleId"
-                  INNER JOIN combos c ON cs."comboId" = c."comboId"
-                  WHERE s."serviceTypeVehicleId" = $2
-                    AND c."comboId" = $3
+            // Precio con descuento de combo
+            query = `
+              WITH CalculatedPrices AS (
+                SELECT 
+                  s."serviceTypeVehicleId",
+                  c."comboId",
+                  c."discountPercentage",
+                  ROUND(s.price * (1 - (c."discountPercentage" / 100.0)), 2) AS "priceUnitByCombo"
+                FROM services_type_vehicle s
+                INNER JOIN combos_services cs ON cs."serviceId" = s."serviceId"
+                INNER JOIN combos c ON cs."comboId" = c."comboId"
+                WHERE s."serviceTypeVehicleId" = $2
+                  AND c."comboId" = $3
               )
               SELECT 
-                  ROUND("priceUnitByCombo" * (1 - ($1 / 100.0)), 2) AS "salePrice",
-                  "discountPercentage"
+                ROUND("priceUnitByCombo" * (1 - ($1 / 100.0)), 2) AS "salePrice",
+                "discountPercentage"
               FROM CalculatedPrices;
             `;
-            param = [service.discount ?? 0, service.serviceTypeVehicleId, service.comboOriginId];
+            params = [service.discount ?? 0, service.serviceTypeVehicleId, service.comboOriginId];
           } else {
-            query += `
-              SELECT ROUND(price - (price * $1) / 100, 2) AS "salePrice" FROM services_type_vehicle
+            // Precio normal con descuento adicional
+            query = `
+              SELECT ROUND(price - (price * $1) / 100, 2) AS "salePrice" 
+              FROM services_type_vehicle
               WHERE "serviceTypeVehicleId" = $2
             `;
-            param = [service.discount ?? 0, service.serviceTypeVehicleId];
+            params = [service.discount ?? 0, service.serviceTypeVehicleId];
           }
 
-          salePrice = (await queryRunner.manager.query(query, param))[0].salePrice;
+          const result = await queryRunner.manager.query(query, params);
+          salePrice = result[0].salePrice;
+
           return {
             saleId: sale.saleId,
             serviceTypeVehicleId: service.serviceTypeVehicleId,
@@ -356,19 +408,25 @@ export class SalesService {
         }),
       );
 
-      // Eliminamos duplicados en caso de que existan
+      // Eliminar duplicados
       const uniqueItems = Object.values(
-        items.reduce((acc, item) => {
-          if (!acc[item.serviceTypeVehicleId]) {
-            acc[item.serviceTypeVehicleId] = item;
-          }
-          return acc;
-        }, {}),
+        items.reduce(
+          (acc, item) => {
+            const key = `${item.serviceTypeVehicleId}_${item.comboOriginId || 'nocomb'}`;
+            if (!acc[key]) {
+              acc[key] = item;
+            }
+            return acc;
+          },
+          {} as Record<string, any>,
+        ),
       );
 
-      console.log('Precios de los servicios: ');
-      console.log(uniqueItems);
+      console.log('Items calculados:', uniqueItems);
 
+      /**
+       * CREACIÓN DE SALES_ITEMS
+       */
       const insertResult = await queryRunner.manager
         .createQueryBuilder()
         .insert()
@@ -378,31 +436,28 @@ export class SalesService {
         .execute();
 
       const savedItems = insertResult.raw;
-      console.log('Items guardados en la venta:', savedItems);
+      console.log('Items guardados:', savedItems);
 
-      /*
-        CREAMOS EL SERVICES_ASSIGNMENTS
-      */
+      /**
+       * CREACIÓN DE SERVICES_ASSIGNMENTS
+       */
+      const servicesAssignments = savedItems
+        .map((item: any) => {
+          const serviceFound = convertedServices.find((s) => s.serviceTypeVehicleId === item.serviceTypeVehicleId);
 
-      /* 
-        Verificacamos que el servicios por tipo de vehiculo sea el mismo tanto para services como para items, 
-        para asignar los id de manera correcta 
-      */
-      const servicesAssignments = savedItems.map((item) => {
-        const serviceFound = services?.find((s) => s.serviceTypeVehicleId === item.serviceTypeVehicleId);
-        if (serviceFound) {
-          return {
-            saleItemId: item.saleItemId,
-            employeeId: serviceFound.employeeId,
-            notes: serviceFound.notes ?? null,
-          };
-        }
-      });
+          if (serviceFound) {
+            return {
+              saleItemId: item.saleItemId,
+              employeeId: serviceFound.employeeId,
+              notes: serviceFound.notes ?? null,
+            };
+          }
+          return null;
+        })
+        .filter(Boolean);
 
-      console.log('Services assignments mapeados: ');
-      console.log(servicesAssignments);
+      console.log('Asignaciones a crear:', servicesAssignments);
 
-      // Creamos el servicios_assignments
       const insertServicesAssignmentsResult = await queryRunner.manager
         .createQueryBuilder()
         .insert()
@@ -410,15 +465,16 @@ export class SalesService {
         .values(servicesAssignments)
         .returning('*')
         .execute();
-      const servicesAssignmentsResultMap = insertServicesAssignmentsResult.raw.map((item) => item.saleItemId);
 
-      console.log('Resultado de el mapeo de servicios_assignments: ');
-      console.log(servicesAssignmentsResultMap);
+      const servicesAssignmentsResultMap = insertServicesAssignmentsResult.raw;
+      console.log('Asignaciones creadas:', servicesAssignmentsResultMap);
 
       /**
-       * CREAMOS LAS COMISIONES
+       * CREACIÓN DE COMISIONES
        */
-      const searchTest = await queryRunner.manager.query(
+      const saleItemIds = servicesAssignmentsResultMap.map((item: any) => item.saleItemId);
+
+      const commissions = await queryRunner.manager.query(
         `
         SELECT
           sa."serviceAssigmentId",
@@ -426,31 +482,39 @@ export class SalesService {
         FROM services s
         INNER JOIN services_type_vehicle stv ON s."serviceId" = stv."serviceId"
         INNER JOIN sales_items si ON si."serviceTypeVehicleId" = stv."serviceTypeVehicleId"
-        INNER JOIN services_assignments sa ON sa."saleItemId" =  si."saleItemId"
+        INNER JOIN services_assignments sa ON sa."saleItemId" = si."saleItemId"
         WHERE sa."saleItemId" = ANY($1)
-      `,
-        [servicesAssignmentsResultMap],
+        `,
+        [saleItemIds],
       );
 
-      console.log('Buscamos comisiones de los servicios prestados: ');
-      console.log(searchTest);
+      console.log('Comisiones calculadas:', commissions);
 
-      // Creamos la comision para guardar en la DB
-      const comisions = await queryRunner.manager
-        .createQueryBuilder()
-        .insert()
-        .into('commissions', ['serviceAssigmentId', 'conmissionTotal'])
-        .values(searchTest)
-        .returning('*')
-        .execute();
+      if (commissions.length > 0) {
+        const createdCommissions = await queryRunner.manager
+          .createQueryBuilder()
+          .insert()
+          .into('commissions', ['serviceAssigmentId', 'conmissionTotal'])
+          .values(commissions)
+          .returning('*')
+          .execute();
 
-      console.log('Comisiones guardadas en la DB: ');
-      console.log(comisions);
+        console.log('Comisiones creadas:', createdCommissions.raw);
+      }
 
       await queryRunner.commitTransaction();
-      return 'Se creo tu fucking venta.';
+
+      return {
+        message: 'Venta creada exitosamente',
+        saleId: sale.saleId,
+        invoiceNumber: dataSale.invoiceNumber,
+        items: savedItems.length,
+        assignments: servicesAssignmentsResultMap.length,
+        commissions: commissions.length,
+      };
     } catch (error) {
       await queryRunner.rollbackTransaction();
+      console.error('Error en la creación de la venta:', error);
       throw error;
     } finally {
       await queryRunner.release();
@@ -542,7 +606,7 @@ export class SalesService {
         statusWashing: sale.statusWashing,
         initialState: sale.initialState,
         paymentMethod: sale.paymentMethod?.name,
-        invoiceNumber: sale.invoiceNumber
+        invoiceNumber: sale.invoiceNumber,
       };
 
       // Cliente

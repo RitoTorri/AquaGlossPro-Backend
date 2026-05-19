@@ -6,16 +6,19 @@ import {
   Patch,
   Param,
   Delete,
-  Res,
   ParseIntPipe,
   Query,
   InternalServerErrorException,
   HttpCode,
   HttpException,
+  UseGuards,
 } from '@nestjs/common';
 import { PaymentsMethodsService } from './payments-methods.service';
 import { CreatePaymentMethodDto } from './dto/create-payment-method.dto';
 import { UpdatePaymentMethodDto } from './dto/update-payment-method.dto';
+import { VerifyTokenGuard } from '../../shared/guards/verify-token.guard';
+import { RolesGuard } from '../../shared/guards/permissions.guard';
+import { CheckPermission } from '../../shared/decorators/permissions.decorators';
 import { PaginationDto } from '../../shared/dto/pagination.dto'; // ← RUTA CORREGIDA (../../)
 import paymentsMethodsSwagger from './payments-methods.swagger';
 
@@ -26,6 +29,8 @@ export class PaymentsMethodsController {
   @Post()
   @paymentsMethodsSwagger.createPaymentMethod()
   @HttpCode(201)
+  @CheckPermission('C', 'PAYMENT_METHODS')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   async create(@Body() createPaymentMethodDto: CreatePaymentMethodDto) {
     try {
       const paymentMethod = await this.paymentsMethodsService.create(createPaymentMethodDto);
@@ -39,6 +44,8 @@ export class PaymentsMethodsController {
 
   @Get()
   @paymentsMethodsSwagger.findPaymentsMethods()
+  @CheckPermission('R', 'PAYMENT_METHODS')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @HttpCode(200)
   async findAll(@Query() paginationDto: PaginationDto) {
     try {
@@ -53,6 +60,8 @@ export class PaymentsMethodsController {
 
   @Patch(':id')
   @paymentsMethodsSwagger.updatePaymentMethod()
+  @CheckPermission('U', 'PAYMENT_METHODS')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @HttpCode(204)
   async update(
     @Param('id', ParseIntPipe) id: string,
@@ -70,6 +79,8 @@ export class PaymentsMethodsController {
 
   @Patch('restore/:id')
   @paymentsMethodsSwagger.restorePaymentMethod()
+  @CheckPermission('U', 'PAYMENT_METHODS')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @HttpCode(200)
   async restore(@Param('id', ParseIntPipe) id: string) {
     try {
@@ -84,6 +95,8 @@ export class PaymentsMethodsController {
 
   @Delete(':id')
   @paymentsMethodsSwagger.removePaymentMethod()
+  @CheckPermission('D', 'PAYMENT_METHODS')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @HttpCode(204)
   async remove(@Param('id', ParseIntPipe) id: string) {
     try {

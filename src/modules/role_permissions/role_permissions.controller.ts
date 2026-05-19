@@ -11,12 +11,14 @@ import {
   HttpCode,
   InternalServerErrorException,
   HttpException,
-  // UseGuards,
+  UseGuards,
 } from '@nestjs/common';
 import { RolePermissionsService } from './role_permissions.service';
 import { CreateRolePermissionDto } from './dto/create-role_permission.dto';
 import { PaginationDto } from '../../shared/dto/pagination.dto';
-// import { VerifyTokenGuard } from '../../shared/guards/verify-token.guard';
+import { VerifyTokenGuard } from '../../shared/guards/verify-token.guard';
+import { CheckPermission } from '../../shared/decorators/permissions.decorators';
+import { RolesGuard } from '../../shared/guards/permissions.guard';
 import Docs from './role_permissions.swagger';
 
 @Controller('role/permissions')
@@ -24,7 +26,8 @@ export class RolePermissionsController {
   constructor(private readonly rolePermissionsService: RolePermissionsService) {}
 
   @Docs.createRolePermission()
-  //@UseGuards(VerifyTokenGuard)
+  @UseGuards(VerifyTokenGuard, RolesGuard)
+  @CheckPermission('C', 'ROLE_PERMISSIONS')
   @Post()
   @HttpCode(201)
   async create(@Body() createRolePermissionDto: CreateRolePermissionDto) {
@@ -42,7 +45,8 @@ export class RolePermissionsController {
   }
 
   @Docs.findAllRolePermissions()
-  //@UseGuards(VerifyTokenGuard)
+  @UseGuards(VerifyTokenGuard, RolesGuard)
+  @CheckPermission('R', 'ROLE_PERMISSIONS')
   @Get()
   @HttpCode(200)
   async findAll(@Query() paginationDto: PaginationDto) {
@@ -61,7 +65,8 @@ export class RolePermissionsController {
   }
 
   @Docs.restoreRolePermission()
-  //@UseGuards(VerifyTokenGuard)
+  @UseGuards(VerifyTokenGuard, RolesGuard)
+  @CheckPermission('U', 'ROLE_PERMISSIONS')
   @Patch('restore/:id')
   @HttpCode(204)
   async restore(@Param('id', ParseIntPipe) id: string) {
@@ -76,7 +81,8 @@ export class RolePermissionsController {
   }
 
   @Docs.removeRolePermission()
-  //@UseGuards(VerifyTokenGuard)
+  @UseGuards(VerifyTokenGuard, RolesGuard)
+  @CheckPermission('D', 'ROLE_PERMISSIONS')
   @Delete(':id')
   @HttpCode(204)
   async remove(@Param('id', ParseIntPipe) id: string) {

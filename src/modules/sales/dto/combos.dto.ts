@@ -9,7 +9,7 @@ export class CombosDto {
   @IsNotEmpty({ message: 'El id del servicio es obligatorio' })
   @IsInt({ message: 'El id del servicio debe de ser un número' })
   @Min(1, { message: 'El id del servicio debe de ser mayor a 0' })
-  serviceTypeVehicleId: number;
+  serviceId: number;
 
   @IsOptional()
   @IsInt({ message: 'El id del combo debe de ser un número' })

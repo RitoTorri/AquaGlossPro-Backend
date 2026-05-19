@@ -11,11 +11,15 @@ import {
   HttpCode,
   HttpException,
   InternalServerErrorException,
+  UseGuards,
 } from '@nestjs/common';
 import { PaginationDto } from '../../shared/dto/pagination.dto';
 import { EmployeesService } from './employees.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
+import { VerifyTokenGuard } from '../../shared/guards/verify-token.guard';
+import { RolesGuard } from '../../shared/guards/permissions.guard';
+import { CheckPermission } from '../../shared/decorators/permissions.decorators';
 import Docs from './employees.swagger';
 
 @Controller('employees')
@@ -24,6 +28,8 @@ export class EmployeesController {
 
   @Docs.ApiCreateEmployeeDoc()
   @HttpCode(201)
+  @CheckPermission('C', 'EMPLOYEES')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Post()
   async create(@Body() createEmployeeDto: CreateEmployeeDto) {
     try {
@@ -41,6 +47,8 @@ export class EmployeesController {
 
   @Docs.ApiFindEmployeesDoc()
   @HttpCode(200)
+  @CheckPermission('R', 'EMPLOYEES')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Get()
   async findAll(@Query() paginationDto: PaginationDto) {
     try {
@@ -55,6 +63,8 @@ export class EmployeesController {
 
   @Docs.ApiUpdateEmployeeDoc()
   @HttpCode(204)
+  @CheckPermission('U', 'EMPLOYEES')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Patch(':id')
   async update(@Param('id', ParseIntPipe) id: string, @Body() updateEmployeeDto: UpdateEmployeeDto) {
     try {
@@ -69,6 +79,8 @@ export class EmployeesController {
 
   @Docs.ApiRemoveEmployeeDoc()
   @HttpCode(204)
+  @CheckPermission('D', 'EMPLOYEES')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Delete(':id')
   async remove(@Param('id', ParseIntPipe) id: string) {
     try {
@@ -83,6 +95,8 @@ export class EmployeesController {
 
   @Docs.ApiRestoreEmployeeDoc()
   @HttpCode(204)
+  @CheckPermission('U', 'EMPLOYEES')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Patch('restore/:id')
   async restore(@Param('id', ParseIntPipe) id: string) {
     try {

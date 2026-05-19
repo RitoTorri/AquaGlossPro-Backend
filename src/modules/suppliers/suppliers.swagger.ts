@@ -6,6 +6,7 @@ import {
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiNoContentResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 
 function createSupplier() {
@@ -14,6 +15,7 @@ function createSupplier() {
       summary: 'Crear un nuevo proveedor',
       description: 'Crea un nuevo proveedor en el sistema',
     }),
+    ApiBearerAuth('access-token'),
     ApiCreatedResponse({ description: 'Proveedor creado exitosamente' }),
     ApiConflictResponse({ description: 'RIF ya esta en uso o el email o phone ya estan en uso' }),
   );
@@ -25,6 +27,7 @@ function findAllSuppliers() {
       summary: 'Lista de proveedores',
       description: 'Obtiene la lista de proveedores filtrados por nombres, RIF, estado o obtener todos.',
     }),
+    ApiBearerAuth('access-token'),
     ApiOkResponse({ description: 'Proveedores obtenidos exitosamente' }),
     ApiNotFoundResponse({ description: 'No se encontraron proveedores' }),
   );
@@ -36,6 +39,7 @@ function updateSupplier() {
       summary: 'Actualiza un proveedor',
       description: 'Actualiza un proveedor en el sistema',
     }),
+    ApiBearerAuth('access-token'),
     ApiNoContentResponse({ description: 'Proveedor actualizado exitosamente' }),
     ApiNotFoundResponse({ description: 'No existe un proveedor con el ID proporcionado' }),
     ApiConflictResponse({ description: 'RIF ya esta en uso o el email o phone ya estan en uso' }),
@@ -49,6 +53,7 @@ function deleteSupplier() {
       summary: 'Elimina un proveedor',
       description: 'Elimina un proveedor en el sistema',
     }),
+    ApiBearerAuth('access-token'),
     ApiNoContentResponse({ description: 'Proveedor eliminado exitosamente' }),
     ApiNotFoundResponse({ description: 'No existe un proveedor con el ID proporcionado' }),
     ApiConflictResponse({ description: 'Proveedor ya esta inactivo. No puede ser eliminado nuevamente.' }),
@@ -61,6 +66,7 @@ function restoreSupplier() {
       summary: 'Restaura un proveedor',
       description: 'Restaura un proveedor en el sistema',
     }),
+    ApiBearerAuth('access-token'),
     ApiNoContentResponse({ description: 'Proveedor restaurado exitosamente' }),
     ApiNotFoundResponse({ description: 'No existe un proveedor con el ID proporcionado' }),
     ApiConflictResponse({ description: 'Proveedor ya esta activo. No puede ser restaurado nuevamente.' }),

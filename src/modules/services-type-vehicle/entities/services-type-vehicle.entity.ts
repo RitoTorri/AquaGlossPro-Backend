@@ -11,7 +11,6 @@ import {
 } from 'typeorm';
 import { Service } from '../../services/entities/service.entity';
 import { TypeVehicle } from '../../type-vehicle/entities/type-vehicle.entity';
-import { CombosServiceEntity } from '../../combos-services/entities/combos-service.entity';
 import { SalesItemsEntity } from '../../sales_items/entities/sales_items.entity';
 
 @Entity('services_type_vehicle')

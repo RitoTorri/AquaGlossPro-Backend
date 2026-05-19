@@ -11,11 +11,15 @@ import {
   InternalServerErrorException,
   HttpCode,
   HttpException,
+  UseGuards,
 } from '@nestjs/common';
 import { JobsService } from './jobs.service';
 import { CreateJobDto } from './dto/create-job.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
 import { PaginationDto } from '../../shared/dto/pagination.dto';
+import { VerifyTokenGuard } from '../../shared/guards/verify-token.guard';
+import { RolesGuard } from '../../shared/guards/permissions.guard';
+import { CheckPermission } from '../../shared/decorators/permissions.decorators';
 import jobsSwagger from './jobs.swagger';
 
 @Controller('jobs')
@@ -24,6 +28,8 @@ export class JobsController {
 
   @jobsSwagger.CreateJob()
   @HttpCode(201)
+  @CheckPermission('C', 'JOBS')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Post()
   async create(@Body() createJobDto: CreateJobDto) {
     try {
@@ -38,6 +44,8 @@ export class JobsController {
 
   @jobsSwagger.FindJobs()
   @HttpCode(200)
+  @CheckPermission('R', 'JOBS')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Get()
   async findAll(@Query() paginationDto: PaginationDto) {
     try {
@@ -52,6 +60,8 @@ export class JobsController {
 
   @jobsSwagger.UpdateJob()
   @HttpCode(204)
+  @CheckPermission('U', 'JOBS')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Patch(':id')
   async update(@Param('id', ParseIntPipe) id: string, @Body() updateJobDto: UpdateJobDto) {
     try {
@@ -66,6 +76,8 @@ export class JobsController {
 
   @jobsSwagger.RestoreJob()
   @HttpCode(200)
+  @CheckPermission('U', 'JOBS')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Patch('restore/:id')
   async restore(@Param('id', ParseIntPipe) id: string) {
     try {
@@ -80,6 +92,8 @@ export class JobsController {
 
   @jobsSwagger.RemoveJob()
   @HttpCode(204)
+  @CheckPermission('D', 'JOBS')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @Delete(':id')
   async remove(@Param('id', ParseIntPipe) id: string) {
     try {

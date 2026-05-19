@@ -9,14 +9,17 @@ import {
   ParseIntPipe,
   Query,
   InternalServerErrorException,
-  NotFoundException,
   HttpException,
   HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import { TypeVehicleService } from './type-vehicle.service';
 import { CreateTypeVehicleDto } from './dto/create-type-vehicle.dto';
 import { UpdateTypeVehicleDto } from './dto/update-type-vehicle.dto';
-import { PaginationDto } from '../../shared/dto/pagination.dto'; // ← RUTA CORREGIDA (../../)
+import { PaginationDto } from '../../shared/dto/pagination.dto'; 
+import { VerifyTokenGuard } from '../../shared/guards/verify-token.guard';
+import { RolesGuard } from '../../shared/guards/permissions.guard';
+import { CheckPermission } from '../../shared/decorators/permissions.decorators';
 import Docs from './type-vehicle.swagger';
 
 @Controller('type-vehicle')
@@ -25,6 +28,8 @@ export class TypeVehicleController {
 
   @Post()
   @Docs.createTypeVehicle()
+  @CheckPermission('C', 'TYPE_VEHICLE')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @HttpCode(200)
   async create(@Body() createTypeVehicleDto: CreateTypeVehicleDto) {
     try {
@@ -39,6 +44,8 @@ export class TypeVehicleController {
 
   @Get()
   @Docs.findAllTypeVehicles()
+  @CheckPermission('R', 'TYPE_VEHICLE')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @HttpCode(200)
   async findAll(@Query() paginationDto: PaginationDto) {
     try {
@@ -53,6 +60,8 @@ export class TypeVehicleController {
 
   @Patch(':id')
   @Docs.updateTypeVehicle()
+  @CheckPermission('U', 'TYPE_VEHICLE')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @HttpCode(200)
   async update(@Param('id', ParseIntPipe) id: string, @Body() updateTypeVehicleDto: UpdateTypeVehicleDto) {
     try {
@@ -67,6 +76,8 @@ export class TypeVehicleController {
 
   @Patch('restore/:id')
   @Docs.restoreTypeVehicle()
+  @CheckPermission('U', 'TYPE_VEHICLE')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @HttpCode(200)
   async restore(@Param('id', ParseIntPipe) id: string) {
     try {
@@ -81,6 +92,8 @@ export class TypeVehicleController {
 
   @Delete(':id')
   @Docs.deleteTypeVehicle()
+  @CheckPermission('D', 'TYPE_VEHICLE')
+  @UseGuards(VerifyTokenGuard, RolesGuard)
   @HttpCode(200)
   async remove(@Param('id', ParseIntPipe) id: string) {
     try {
