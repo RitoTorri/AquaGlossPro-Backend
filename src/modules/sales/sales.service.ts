@@ -8,6 +8,7 @@ import { StatusPayments } from '../../shared/enums/status-payments.enum';
 import { Sale } from './entities/sale.entity';
 import { QueryDateDto } from '../../shared/dto/query.date.dto';
 import { StatusWashing } from '../../shared/enums/status.washing';
+import { generateInvoiceNumber } from '../../shared/utils/invoice_generate.utils';
 
 @Injectable()
 export class SalesService {
@@ -18,7 +19,7 @@ export class SalesService {
   ) {}
 
   async create(createSaleDto: CreateSaleDto) {
-    const { services, ...rest } = createSaleDto;
+    let { services, ...rest } = createSaleDto;
     console.log(rest);
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -141,12 +142,15 @@ export class SalesService {
       }
 
       // Creamos la venta
+      const dataSale = { ...rest, invoiceNumber: generateInvoiceNumber() };
+      console.log('Datos de la venta a guardar:');
+      console.log(dataSale);
       const sale = (
         await queryRunner.manager
           .createQueryBuilder()
           .insert()
           .into('sales')
-          .values(rest)
+          .values(dataSale)
           .returning([
             'saleId',
             'clientId',
@@ -538,6 +542,7 @@ export class SalesService {
         statusWashing: sale.statusWashing,
         initialState: sale.initialState,
         paymentMethod: sale.paymentMethod?.name,
+        invoiceNumber: sale.invoiceNumber
       };
 
       // Cliente

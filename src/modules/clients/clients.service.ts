@@ -1,16 +1,24 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { EntityManager, Repository } from 'typeorm';
+import bcrypt from 'bcrypt';
+
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
-import { InjectRepository } from '@nestjs/typeorm';
+import { CreateUserDto } from '../users/dto/create-user.dto';
 import { PaginationDto } from '../../shared/dto/pagination.dto';
 import { Client } from './entities/client.entity';
-import { Repository } from 'typeorm';
+import { User } from '../users/entities/user.entity';
+import { Role } from '../roles/entities/role.entity';
+import { MailService } from '../../providers/mail/mail.service';
 
 @Injectable()
 export class ClientsService {
   constructor(
     @InjectRepository(Client)
     private readonly clientsRepository: Repository<Client>,
+    private readonly manager: EntityManager,
+    private readonly mailService: MailService,
   ) {}
 
   async create(createClientDto: CreateClientDto) {
@@ -18,7 +26,39 @@ export class ClientsService {
     await this.findDataDuplicate(createClientDto.ci, createClientDto.numberPhone);
 
     const client = this.clientsRepository.create(createClientDto);
-    return await this.clientsRepository.save(client);
+    const result = await this.clientsRepository.save(client);
+
+    // Buscamos el rol de cliente
+    const role = await this.manager.findOne(Role, { where: { name: 'CLIENT' }, select: ['roleId'] });
+    if (!role) throw new ConflictException('No se encontró el rol CLIENT');
+
+    // Creamos el usuario
+    const password = await bcrypt.hash(result.ci, 10);
+    const userData: CreateUserDto = {
+      roleId: role.roleId,
+      name: result.names,
+      email: result.ci,
+      password: password,
+    };
+    const user = await this.manager.findOne(User, { where: { email: userData.email } });
+    if (user) {
+      throw new ConflictException('Ya existe un usuario con ese correo electrónico');
+    }
+    const newUser = this.manager.create(User, userData);
+    const newUserSaved = await this.manager.save(newUser);
+
+    console.log('Usuario creado:');
+    console.log(newUserSaved);
+
+    // Enviamos el correo electrónico
+    const mailResult = await this.mailService.sendMail(result.email, {
+      names: result.names,
+      lastnames: result.lastnames,
+      username: result.ci,
+      password: result.ci,
+    });
+    console.log(mailResult);
+    return result;
   }
 
   async remove(id: number) {
@@ -48,7 +88,7 @@ export class ClientsService {
     if (!clientExist.active) throw new ConflictException('El cliente está inactivo. No puede ser actualizado');
 
     // Validamos datos duplicados
-    await this.findDataDuplicate(updateClientDto.ci, updateClientDto.numberPhone, id);
+    await this.findDataDuplicate(updateClientDto.ci, updateClientDto.numberPhone, updateClientDto.email, id);
 
     const updateClient = await this.clientsRepository.merge(clientExist, updateClientDto);
     return await this.clientsRepository.save(updateClient);
@@ -179,18 +219,20 @@ export class ClientsService {
   async findDataDuplicate(
     ci: string | null = null,
     numberPhone: string | null = null,
+    email: string | null | undefined = null,
     clientIdExclude: number | null = null,
   ) {
-    const whereConditions: Array<{ ci?: string; numberPhone?: string }> = [];
+    const whereConditions: Array<{ ci?: string; numberPhone?: string; email?: string }> = [];
 
     if (ci) whereConditions.push({ ci });
     if (numberPhone) whereConditions.push({ numberPhone });
+    if (email) whereConditions.push({ email });
 
     if (whereConditions.length === 0) return;
 
     const clients = await this.clientsRepository.find({
       where: whereConditions,
-      select: ['clientId', 'ci', 'names', 'lastnames', 'numberPhone', 'active'],
+      select: ['clientId', 'ci', 'names', 'lastnames', 'numberPhone', 'email', 'active'],
       withDeleted: true,
     });
 
@@ -203,6 +245,10 @@ export class ClientsService {
 
       if (client.numberPhone === numberPhone) {
         throw new ConflictException('El número de teléfono proporcionado ya existe');
+      }
+
+      if (client.email === email) {
+        throw new ConflictException('El email proporcionado ya existe');
       }
     }
   }

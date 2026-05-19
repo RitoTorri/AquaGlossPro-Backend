@@ -6,12 +6,11 @@ export class LoginDto {
         description: 'Email',
         example: 'jesus@aquagloss.com',
         required: true,
-        minLength: 13,
+        minLength: 1,
         maxLength: 100,
     })
     @IsNotEmpty()
-    @IsEmail()
-    @MinLength(15)
+    @MinLength(1)
     @MaxLength(100)
     email: string;
 

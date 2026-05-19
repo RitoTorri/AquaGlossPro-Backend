@@ -13,12 +13,10 @@ fi
 export PGPASSWORD=$POSTGRES_PASSWORD
 echo "Conectando a: $POSTGRES_HOST:$POSTGRES_PORT como $POSTGRES_USER"
 
-
 # 2. Crear la BD (nos conectamos a 'postgres' para poder crear la de ventas)
 echo "Asegurando existencia de la base de datos: $POSTGRES_DB..."
 psql -h $POSTGRES_HOST -p $POSTGRES_PORT -U $POSTGRES_USER -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = '$POSTGRES_DB'" | grep -q 1 || \
 psql -h $POSTGRES_HOST -p $POSTGRES_PORT -U $POSTGRES_USER -d postgres -c "CREATE DATABASE $POSTGRES_DB;"
-
 
 # 3. Aplicar los archivos SQL
 echo "Aplicando archivos SQL en orden..."
@@ -29,16 +27,19 @@ for file in ./src/database/SQL/*.sql; do
   fi
 done
 
+run_seed() {
+  echo "Ejecutando: $1..."
+  npx ts-node "$2"
+  if [ $? -eq 0 ]; then
+    echo ">> $1 FINALIZADO EXITOSAMENTE"
+  else
+    echo "ERROR: $1 falló."
+    exit 1
+  fi
+}
 
-# 4. Ejecución de seeding
-echo "Poblando base de datos (Módulos y Roles)..."
-npx ts-node src/database/SCRIPTS/seed.scripts.ts
-
-
-# 5. Verificación Final
-if [ $? -eq 0 ]; then
-  echo "SEEDING Y MONTAJE FINALIZADO EXITOSAMENTE"
-else
-  echo "ERROR: El seeding falló."
-  exit 1
-fi
+run_seed "Modulos y permisos" "src/database/SCRIPTS/modules.script.ts"
+run_seed "Rol de cajero" "src/database/SCRIPTS/cashier.rol.script.ts"
+run_seed "Rol de administrador" "src/database/SCRIPTS/admin.rol.script.ts"
+run_seed "Rol de supervisor de pista" "src/database/SCRIPTS/track_viewer.rol.script.ts"
+run_seed "Rol de cliente" "src/database/SCRIPTS/client.rol.script.ts"

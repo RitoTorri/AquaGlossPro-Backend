@@ -19,6 +19,7 @@ CREATE TABLE
         "lastnames" VARCHAR(100) NOT NULL,
         "numberPhone" VARCHAR(20) UNIQUE NOT NULL,
         "ci" VARCHAR(20) UNIQUE NOT NULL,
+        "email" VARCHAR(100) UNIQUE DEFAULT NULL,
         "active" BOOLEAN DEFAULT TRUE,
         "createdAt" TIMESTAMP DEFAULT NOW (),
         "updatedAt" TIMESTAMP DEFAULT NULL,
@@ -268,6 +269,7 @@ CREATE TABLE
         "clientId" INTEGER NOT NULL REFERENCES clients ("clientId"),
         "vehicleId" INTEGER NOT NULL REFERENCES vehicles ("vehicleId"),
         "paymentMethodId" INTEGER NOT NULL REFERENCES payments_methods ("paymentMethodId"),
+        "invoiceNumber" VARCHAR(30) UNIQUE NOT NULL,
         "statusSale" status_payments NOT NULL DEFAULT 'W',
         "statusWashing" washing_status NOT NULL DEFAULT 'W',
         "saleDate" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -314,3 +316,12 @@ CREATE TABLE
         "createdAt" TIMESTAMP DEFAULT NOW (),
         "updatedAt" TIMESTAMP DEFAULT NULL
     );
+
+--  Product Usage
+CREATE TABLE product_usage (
+    "productUsageId" SERIAL PRIMARY KEY,
+    "productId" INTEGER NOT NULL REFERENCES products("productId") ON DELETE CASCADE,
+    "quantityUsed" NUMERIC(10, 2) NOT NULL,
+    "unitType" type_unit NOT NULL DEFAULT 'L',
+    "createdAt" TIMESTAMP DEFAULT NOW ()
+);

@@ -22,6 +22,9 @@ export class Sale {
   @Column({ nullable: false, type: 'int' })
   paymentMethodId: number;
 
+  @Column({ nullable: false, type: 'varchar', length: 30, unique: true })
+  invoiceNumber: string;
+
   @Column({ nullable: false, type: 'enum', enum: StatusPayments, default: StatusPayments.PENDING })
   statusSale: StatusPayments;
 
