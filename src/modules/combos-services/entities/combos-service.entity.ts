@@ -1,3 +1,4 @@
+// src/modules/combos-services/entities/combos-service.entity.ts
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -9,7 +10,7 @@ import {
   DeleteDateColumn,
 } from 'typeorm';
 import { Combo } from '../../combos/entities/combo.entity';
-import { Service } from '../../services/entities/service.entity'; // ← Cambio importante
+import { Service } from '../../services/entities/service.entity';
 
 @Entity('combos_services')
 export class CombosServiceEntity {
@@ -19,7 +20,7 @@ export class CombosServiceEntity {
   @Column({ name: 'comboId', nullable: false })
   comboId: number;
 
-  @Column({ name: 'serviceId', nullable: false }) // ← antes 'servicesTypeVehicleId'
+  @Column({ name: 'serviceId', nullable: false })
   serviceId: number;
 
   @Column({ default: true })
@@ -38,7 +39,8 @@ export class CombosServiceEntity {
   @JoinColumn({ name: 'comboId' })
   combo: Combo;
 
-  @ManyToOne(() => Service, (service) => service.combosServices) // ← relación con Service
+  // ✅ Sin segundo argumento para evitar error si la relación inversa no existe
+  @ManyToOne(() => Service)
   @JoinColumn({ name: 'serviceId' })
   service: Service;
 }

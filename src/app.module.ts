@@ -79,8 +79,6 @@ import { StockModule } from './modules/stock/stock.module';
 
     CommissionsModule,
 
-    CombosServicesModule,
-
     CombosModule,
 
     ReportsModule,

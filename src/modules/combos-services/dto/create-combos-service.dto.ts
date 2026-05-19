@@ -12,7 +12,7 @@ export class CreateCombosServiceDto {
     @IsNumber()
     @IsNotEmpty()
     @Min(1)
-    servicesTypeVehicleId: number;
+    serviceId: number; // ✅ Cambiado
 
     @ApiProperty({ required: false, default: true })
     @IsBoolean()

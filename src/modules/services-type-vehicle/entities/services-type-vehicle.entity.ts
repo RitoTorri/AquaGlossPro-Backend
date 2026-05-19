@@ -48,9 +48,6 @@ export class ServicesTypeVehicle {
   @JoinColumn({ name: 'typeVehicleId' })
   typeVehicle: TypeVehicle;
 
-  @OneToMany(() => CombosServiceEntity, (combosService) => combosService.servicesTypeVehicle)
-  combosServices: CombosServiceEntity[];
-
   @OneToMany(() => SalesItemsEntity, (salesItems) => salesItems.servicesTypeVehicle)
   salesItems: SalesItemsEntity[];
 }
