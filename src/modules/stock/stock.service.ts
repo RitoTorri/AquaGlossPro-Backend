@@ -12,7 +12,6 @@ export class StockService {
   async update(updateStockListDto: UpdateStockListDto) {
     // Iniciamos la transacción
     return await this.entityManager.transaction(async (transactionalManager) => {
-      
       for (const updateStockDto of updateStockListDto.items) {
         // Buscamos el producto usando el manager de la transacción
         const product = await transactionalManager.findOne(Product, {
@@ -41,15 +40,16 @@ export class StockService {
           nuevoStock = product.currentStock - updateStockDto.stock;
         } else {
           // Lógica de conversión usando tus Utils
-          nuevoStock = product.unitType === TypeUnit.GALLONS && updateStockDto.unitType === TypeUnit.LITERS
-            ? InventoryUtils.decrementLitersFromGallons(updateStockDto.stock, product.currentStock)
-            : InventoryUtils.decrementGallonsFromLiters(updateStockDto.stock, product.currentStock);
+          nuevoStock =
+            product.unitType === TypeUnit.GALLONS && updateStockDto.unitType === TypeUnit.LITERS
+              ? InventoryUtils.decrementLitersFromGallons(updateStockDto.stock, product.currentStock)
+              : InventoryUtils.decrementGallonsFromLiters(updateStockDto.stock, product.currentStock);
         }
 
         // Validación de stock insuficiente (Evitar negativos)
         if (nuevoStock < 0) {
           throw new BadRequestException(
-            `Stock insuficiente para el producto ${product.productId}. Stock actual: ${product.currentStock}, Intento de resta: ${updateStockDto.stock} (${updateStockDto.unitType})`
+            `Stock insuficiente para el producto ${product.productId}. Stock actual: ${product.currentStock}, Intento de resta: ${updateStockDto.stock} (${updateStockDto.unitType})`,
           );
         }
 
@@ -57,9 +57,15 @@ export class StockService {
 
         // Guardar cambios usando el transactionalManager
         // Usamos update en lugar de save para mayor eficiencia en procesos masivos
-        await transactionalManager.update(Product, product.productId, { 
-          currentStock: nuevoStock 
+        await transactionalManager.update(Product, product.productId, {
+          currentStock: nuevoStock,
         });
+
+        await transactionalManager.query(`INSERT INTO product_usage ("productId", "quantityUsed", "unitType") VALUES ($1, $2, $3)`, [
+          product.productId,
+          updateStockDto.stock,
+          updateStockDto.unitType,
+        ]);
       }
 
       return { message: 'Inventario actualizado exitosamente' };

@@ -316,3 +316,12 @@ CREATE TABLE
         "createdAt" TIMESTAMP DEFAULT NOW (),
         "updatedAt" TIMESTAMP DEFAULT NULL
     );
+
+--  Product Usage
+CREATE TABLE product_usage (
+    "productUsageId" SERIAL PRIMARY KEY,
+    "productId" INTEGER NOT NULL REFERENCES products("productId") ON DELETE CASCADE,
+    "quantityUsed" NUMERIC(10, 2) NOT NULL,
+    "unitType" type_unit NOT NULL DEFAULT 'L',
+    "createdAt" TIMESTAMP DEFAULT NOW ()
+);
