@@ -32,6 +32,8 @@ import { SalesModule } from './modules/sales/sales.module';
 import { SalesItemsModule } from './modules/sales_items/sales_items.module';
 import { MailModule } from './providers/mail/mail.module';
 import { StockModule } from './modules/stock/stock.module';
+import { ServicesTypeVehicle } from './modules/services-type-vehicle/entities/services-type-vehicle.entity';
+import { ServicesTypeVehicleModule } from './modules/services-type-vehicle/services-type-vehicle.module';
 
 @Module({
   imports: [
@@ -91,7 +93,9 @@ import { StockModule } from './modules/stock/stock.module';
 
     MailModule,
 
-    StockModule
+    StockModule,
+
+    ServicesTypeVehicleModule,
   ],
   controllers: [PermissionsController],
   providers: [
