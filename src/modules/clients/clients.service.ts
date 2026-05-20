@@ -11,6 +11,7 @@ import { Client } from './entities/client.entity';
 import { User } from '../users/entities/user.entity';
 import { Role } from '../roles/entities/role.entity';
 import { MailService } from '../../providers/mail/mail.service';
+import { IsEmail } from 'class-validator';
 
 @Injectable()
 export class ClientsService {
@@ -132,6 +133,7 @@ export class ClientsService {
             c.lastnames,
             c."numberPhone",
             c.ci,
+            c.email,
             c.active
         FROM clients c
         WHERE c.active = $3
@@ -155,6 +157,7 @@ export class ClientsService {
       lastnames: row.lastnames,
       numberPhone: row.numberPhone,
       ci: row.ci,
+      email: row.email,
       active: row.active,
       countVehicles: parseInt(row.count_vehicles) || 0,
     }));
