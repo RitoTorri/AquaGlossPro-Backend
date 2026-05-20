@@ -28,7 +28,7 @@ export class TypeVehicleController {
 
   @Post()
   @Docs.createTypeVehicle()
-  @CheckPermission('C', 'TYPE_VEHICLE')
+  @CheckPermission('C', 'TYPE_VEHICLES')
   @UseGuards(VerifyTokenGuard, RolesGuard)
   @HttpCode(200)
   async create(@Body() createTypeVehicleDto: CreateTypeVehicleDto) {
@@ -44,7 +44,7 @@ export class TypeVehicleController {
 
   @Get()
   @Docs.findAllTypeVehicles()
-  @CheckPermission('R', 'TYPE_VEHICLE')
+  @CheckPermission('R', 'TYPE_VEHICLES')
   @UseGuards(VerifyTokenGuard, RolesGuard)
   @HttpCode(200)
   async findAll(@Query() paginationDto: PaginationDto) {
@@ -60,7 +60,7 @@ export class TypeVehicleController {
 
   @Patch(':id')
   @Docs.updateTypeVehicle()
-  @CheckPermission('U', 'TYPE_VEHICLE')
+  @CheckPermission('U', 'TYPE_VEHICLES')
   @UseGuards(VerifyTokenGuard, RolesGuard)
   @HttpCode(200)
   async update(@Param('id', ParseIntPipe) id: string, @Body() updateTypeVehicleDto: UpdateTypeVehicleDto) {
@@ -76,7 +76,7 @@ export class TypeVehicleController {
 
   @Patch('restore/:id')
   @Docs.restoreTypeVehicle()
-  @CheckPermission('U', 'TYPE_VEHICLE')
+  @CheckPermission('U', 'TYPE_VEHICLES')
   @UseGuards(VerifyTokenGuard, RolesGuard)
   @HttpCode(200)
   async restore(@Param('id', ParseIntPipe) id: string) {
@@ -92,7 +92,7 @@ export class TypeVehicleController {
 
   @Delete(':id')
   @Docs.deleteTypeVehicle()
-  @CheckPermission('D', 'TYPE_VEHICLE')
+  @CheckPermission('D', 'TYPE_VEHICLES')
   @UseGuards(VerifyTokenGuard, RolesGuard)
   @HttpCode(200)
   async remove(@Param('id', ParseIntPipe) id: string) {
