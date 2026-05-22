@@ -135,7 +135,7 @@ El usuario administrador se crea en los scripts de inicialización, Las credenci
 
 | Usuario | Contraseña |
 |---------|------------|
-| admin@admin.com   | admin      |
+| admin   | admin      |
 
 <br>
 
