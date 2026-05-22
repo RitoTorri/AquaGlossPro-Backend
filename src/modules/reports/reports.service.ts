@@ -15,6 +15,9 @@ export interface DailyClosure {
 export class ReportsService {
   constructor(@InjectDataSource() private dataSource: DataSource) {}
 
+  // ------------------------------------------------------------
+  // Manejo de fechas
+  // ------------------------------------------------------------
   private getDateRange(dateRange: DateRangeDto): { start: Date; end: Date } {
     let { period, startDate, endDate } = dateRange;
 
@@ -134,12 +137,12 @@ export class ReportsService {
   }
 
   // ------------------------------------------------------------
-  // 4. Productos más usados (sin cambios, no depende de statusSale)
+  // 4. Productos más usados (con auto‑seed si está vacío)
   // ------------------------------------------------------------
   async getMostUsedProducts(dateRange: DateRangeDto, limit: number = 5): Promise<any[]> {
     const { start, end } = this.getDateRange(dateRange);
 
-    // Verificar/crear tabla product_usage y sembrar datos si está vacía (solo desarrollo)
+    // Verificar/crear tabla product_usage
     let hasData = false;
     try {
       const check = await this.dataSource.query(`SELECT COUNT(*) as count FROM product_usage`);
@@ -297,7 +300,7 @@ export class ReportsService {
   }
 
   // ------------------------------------------------------------
-  // 8. Top empleados por comisiones (pendientes + pagados)
+  // 8. Top empleados por comisiones (pendientes + pagadas)
   // ------------------------------------------------------------
   async getTopEmployeesByCommission(dateRange: DateRangeDto, limit: number = 5): Promise<{
     employeeId: number;
@@ -312,11 +315,13 @@ export class ReportsService {
        JOIN sales_items si ON sa."saleItemId" = si."saleItemId"
        JOIN sales s ON si."saleId" = s."saleId"
        JOIN employees e ON sa."employeeId" = e."employeeId"
-       WHERE s."saleDate" >= $1 AND s."saleDate" <= $2 AND s."statusSale" IN ($3, $4) AND c."statusPaymentConmission" = $5
+       WHERE s."saleDate" >= $1 AND s."saleDate" <= $2 
+         AND s."statusSale" IN ($3, $4) 
+         AND c."statusPaymentConmission" IN ($5, $6)
        GROUP BY e."employeeId", e.names, e.lastnames
        ORDER BY "totalCommission" DESC
-       LIMIT $6`,
-      [start, end, 'W', 'P', 'W', limit],
+       LIMIT $7`,
+      [start, end, 'W', 'P', 'W', 'P', limit],
     );
     return rows.map(r => ({
       employeeId: r.employeeId,
@@ -354,7 +359,7 @@ export class ReportsService {
   }
 
   // ------------------------------------------------------------
-  // 10. Cierre operativo diario (ingresos vs comisiones) – pendientes + pagados
+  // 10. Cierre operativo diario (ingresos vs comisiones) – pendientes + pagadas
   // ------------------------------------------------------------
   async getOperationalClosure(dateRange: DateRangeDto): Promise<DailyClosure[]> {
     const { start, end } = this.getDateRange(dateRange);
@@ -374,8 +379,9 @@ export class ReportsService {
           JOIN services_assignments sa ON c."serviceAssigmentId" = sa."serviceAssigmentId"
           JOIN sales_items si ON sa."saleItemId" = si."saleItemId"
           JOIN sales s ON si."saleId" = s."saleId"
-          WHERE s."saleDate" >= $1 AND s."saleDate" <= $2 AND s."statusSale" IN ('W', 'P')
-            AND c."statusPaymentConmission" = 'W'
+          WHERE s."saleDate" >= $1 AND s."saleDate" <= $2 
+            AND s."statusSale" IN ('W', 'P')
+            AND c."statusPaymentConmission" IN ('W', 'P')
           GROUP BY DATE(s."saleDate")
         )
         SELECT COALESCE(ds.date, dc.date) AS date,
@@ -393,5 +399,82 @@ export class ReportsService {
       expenses: Number(row.commissionsPaid),
       netIncome: Number(row.grossIncome) - Number(row.commissionsPaid),
     }));
+  }
+
+  // ========== MÉTODOS PARA EXPORTACIÓN ==========
+  async getMostUsedProductsData(dateRange: DateRangeDto): Promise<any[]> {
+    const { start, end } = this.getDateRange(dateRange);
+    const rows = await this.dataSource.query(
+      `SELECT p.name AS producto, COALESCE(SUM(pu."quantityUsed"), 0) AS total_usado
+       FROM product_usage pu
+       JOIN products p ON pu."productId" = p."productId"
+       WHERE pu."createdAt" >= $1 AND pu."createdAt" <= $2
+       GROUP BY p.name
+       ORDER BY total_usado DESC`,
+      [start, end],
+    );
+    return rows.map(r => ({ producto: r.producto, total_usado: parseFloat(r.total_usado) }));
+  }
+
+  async getTopServicesData(dateRange: DateRangeDto): Promise<any[]> {
+    const { start, end } = this.getDateRange(dateRange);
+    const rows = await this.dataSource.query(
+      `SELECT s.name AS servicio, COUNT(*) AS cantidad
+       FROM sales_items si
+       JOIN services_type_vehicle stv ON si."serviceTypeVehicleId" = stv."serviceTypeVehicleId"
+       JOIN services s ON stv."serviceId" = s."serviceId"
+       JOIN sales sa ON si."saleId" = sa."saleId"
+       WHERE sa."saleDate" >= $1 AND sa."saleDate" <= $2 AND sa."statusSale" IN ('W', 'P')
+       GROUP BY s.name
+       ORDER BY cantidad DESC`,
+      [start, end],
+    );
+    return rows.map(r => ({ servicio: r.servicio, cantidad: parseInt(r.cantidad) }));
+  }
+
+  async getSalesByPaymentMethodData(dateRange: DateRangeDto): Promise<any[]> {
+    const { start, end } = this.getDateRange(dateRange);
+    const rows = await this.dataSource.query(
+      `SELECT pm.name AS metodo_pago, SUM(si."salePrice") AS total_ventas
+       FROM sales s
+       JOIN sales_items si ON s."saleId" = si."saleId"
+       JOIN payments_methods pm ON s."paymentMethodId" = pm."paymentMethodId"
+       WHERE s."saleDate" >= $1 AND s."saleDate" <= $2 AND s."statusSale" IN ('W', 'P')
+       GROUP BY pm.name
+       ORDER BY total_ventas DESC`,
+      [start, end],
+    );
+    return rows.map(r => ({ metodo_pago: r.metodo_pago, total_ventas: parseFloat(r.total_ventas) }));
+  }
+
+  async getTopEmployeesByVehiclesWashedData(dateRange: DateRangeDto): Promise<any[]> {
+    const { start, end } = this.getDateRange(dateRange);
+    const rows = await this.dataSource.query(
+      `SELECT CONCAT(e.names, ' ', e.lastnames) AS empleado, COUNT(DISTINCT s."saleId") AS vehiculos_lavados
+       FROM sales s
+       JOIN sales_items si ON s."saleId" = si."saleId"
+       JOIN services_assignments sa ON si."saleItemId" = sa."saleItemId"
+       JOIN employees e ON sa."employeeId" = e."employeeId"
+       WHERE s."saleDate" >= $1 AND s."saleDate" <= $2 AND s."statusSale" IN ('W', 'P')
+       GROUP BY e.names, e.lastnames
+       ORDER BY vehiculos_lavados DESC`,
+      [start, end],
+    );
+    return rows.map(r => ({ empleado: r.empleado, vehiculos_lavados: parseInt(r.vehiculos_lavados) }));
+  }
+
+  async getTotalVehiclesByTypeData(dateRange: DateRangeDto): Promise<any[]> {
+    const { start, end } = this.getDateRange(dateRange);
+    const rows = await this.dataSource.query(
+      `SELECT tv.name AS tipo_vehiculo, COUNT(*) AS cantidad
+       FROM sales s
+       JOIN vehicles v ON s."vehicleId" = v."vehicleId"
+       JOIN types_vehicles tv ON v."typeVehicleId" = tv."typeVehicleId"
+       WHERE s."saleDate" >= $1 AND s."saleDate" <= $2 AND s."statusSale" IN ('W', 'P')
+       GROUP BY tv.name
+       ORDER BY cantidad DESC`,
+      [start, end],
+    );
+    return rows.map(r => ({ tipo_vehiculo: r.tipo_vehiculo, cantidad: parseInt(r.cantidad) }));
   }
 }
