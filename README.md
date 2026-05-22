@@ -12,7 +12,7 @@ Esta API REST Require del siguiente servicio para envio de correos electrónicos
 
 
 <p align="center">
-  <img src="https://skillicons.dev/icons?i=typescript,nestjs,postgresql,docker,git,jest,bash" height="50" />
+  <img src="https://skillicons.dev/icons?i=typescript,nestjs,postgresql,docker,git,bash" height="50" />
 </p>
 
 </div>
@@ -22,6 +22,11 @@ Esta API REST Require del siguiente servicio para envio de correos electrónicos
 ### ⌨️ Codigo de la Base de datos
 
 Puedes ver el codigo de la base de datos [📍Aqui](https://github.com/RitoTorri/AquaGlossPro-Backend/tree/master/src/database/SQL)
+
+### 📟 Scripts de inicializacion de la base de datos
+
+[Script de configuracion local](https://github.com/RitoTorri/AquaGlossPro-Backend/blob/master/init_db_local.sh)  
+[Script de configuración con Docker](https://github.com/RitoTorri/AquaGlossPro-Backend/blob/master/init_db_docker.sh)
 
 ### 🔑 Composición de los TOKENS (JWT)
 
