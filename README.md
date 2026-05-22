@@ -4,7 +4,6 @@ Esta es la API centralizada para la gestión integral de autolavados. El sistema
 
 Esta API REST Require del siguiente servicio para envio de correos electrónicos: [Maily](https://github.com/RitoTorri/Maily)
 
-<br>
 
 # 🛠️ Stack tecnológico
 
@@ -44,7 +43,6 @@ Este sistema utiliza JWT para autenticar y autorizar las peticiones. Cada petici
 }
 ```
 
-<br>
 
 # 📦 Instalación:
 
@@ -56,7 +54,6 @@ git clone https://github.com/RitoTorri/AquaGlossPro-Backend
 cd AquaGlossPro-Backend
 ```
 
-<br>
 
 # 🔧 Configuración inicial
 
@@ -79,7 +76,6 @@ Debes renombrar `.env.example` a `.env` y configurar:
 | `EMAIL_URL` | URL del servicio de envío de emails | `http://localhost:8000/sender` |
 
 
-<br>
 
 # 🚀 Guía de inicio rápido
 
@@ -124,7 +120,6 @@ npm run start:dev
 - `init_db_local.sh`: Este escript se encarga de crear la base de datos en caso de que no exista y ejecuta los archivos SQL de la ruta `/src/database/SQL` para crear los enums, tablas, views y functions necesarios para que el codigo funcione. Además, ejecuta el seeding de la base de datos para crear los roles, permisos y el usuario administrador.
 - `init_db_docker.sh`: Ejecuta el seeding de la base de datos para crear los roles, permisos y el usuario administrador.
 
-<br>
 
 # 👨‍💼 Usuario Administrador
 
@@ -134,7 +129,6 @@ El usuario administrador se crea en los scripts de inicialización, Las credenci
 |---------|------------|
 | admin   | admin      |
 
-<br>
 
 # 📄 Documentación
 
