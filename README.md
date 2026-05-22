@@ -4,16 +4,6 @@ Esta es la API centralizada para la gestión integral de autolavados. El sistema
 
 Esta API REST Require del siguiente servicio para envio de correos electrónicos: [Maily](https://github.com/RitoTorri/Maily)
 
-### 📑 Índice
-
-- [Stack tecnológico](#️-stack-tecnológico)
-- [Base de datos de AquaGloss Pro](#-base-de-datos-de-aquagloss-pro)    
-- [Instalación](#-instalación)
-- [Configuración inicial](#-configuración-inicial)
-- [Guía de inicio rápido](#-guía-de-inicio-rápido)
-- [Usuario Administrador](#-usuario-administrador)
-- [Documentación](#-documentación)
-
 <br>
 
 # 🛠️ Stack tecnológico
@@ -81,6 +71,8 @@ Debes renombrar `.env.example` a `.env` y configurar:
 | `POSTGRES_PASSWORD` | Contraseña de la base de datos | `postgres123` |
 | `POSTGRES_DB` | Nombre de la base de datos | `Aqua Gloss Pro` |
 | `FRONTEND_URL` | URL del frontend para CORS | `http://localhost:3543` |
+| `EMAIL_URL` | URL del servicio de envío de emails | `http://localhost:8000/sender` |
+
 
 <br>
 
